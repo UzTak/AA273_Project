@@ -1,2 +1,2 @@
-# AA273_Project
-AA273 final project (Spring 2024) 
+# AA 273 Project: Camera-based Pose Estimation for Booster Landing
+
