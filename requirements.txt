@@ -1,0 +1,11 @@
+numpy
+matplotlib
+torch
+bpy
+sys
+mathutils
+json
+csv
+scipy
+opencv
+opencv-contrib-python
