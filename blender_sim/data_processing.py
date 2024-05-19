@@ -105,8 +105,7 @@ class LandingSim():
     def __init__(self, traj_path, blender_script_path, blender_file_path):
 
         # Load trajectory from provided config file
-        self.traj = json.load(traj_path)
-
+        self.traj_dict = (np.load(traj_path)).item()
 
         # Configs for Blender
         self.camera_cfg = {
@@ -126,8 +125,9 @@ class LandingSim():
         # Classes for getting blender image and converting it to a ROS message
         self.agent = Agent(self.camera_cfg, self.blender_cfg)
 
-    def run_through_traj(self, traj):
-        n = ...
+    def run_through_traj(self):
+        timesteps = (self.traj_dict).item()
+        n = len(timesteps)
         positions = ...
         attitudes = ...
 
