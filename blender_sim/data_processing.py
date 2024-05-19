@@ -6,10 +6,8 @@ import torch
 import json
 import imageio
 import subprocess
-from cv_bridge import CvBridge
 from scipy.spatial.transform import Rotation, Slerp
 import cv2
-import opencv-conrti
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
