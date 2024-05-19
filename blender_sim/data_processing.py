@@ -105,7 +105,8 @@ class LandingSim():
     def __init__(self, traj_path, blender_script_path, blender_file_path):
 
         # Load trajectory from provided config file
-        self.trajectory_file = ... 
+        self.traj = json.load(traj_path)
+
 
         # Configs for Blender
         self.camera_cfg = {
@@ -124,7 +125,6 @@ class LandingSim():
         
         # Classes for getting blender image and converting it to a ROS message
         self.agent = Agent(self.camera_cfg, self.blender_cfg)
-        self.bridge = CvBridge()
 
     def run_through_traj(self, traj):
         n = ...
