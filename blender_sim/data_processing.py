@@ -61,7 +61,7 @@ class Agent():
             raise
 
         # Run the capture image script in headless blender
-        subprocess.run(['blender', '-b', self.blend, '-P', self.blend_script, '--', pose_path, img_path, depth_path])
+        subprocess.run(['blender.exe', '-b', self.blend, '-P', self.blend_script, '--', pose_path, img_path, depth_path])
 
         try: 
             img = imageio.imread(img_path)
@@ -88,12 +88,12 @@ def quaternion_to_rotation_matrix(q):
     Convert quaternion to 3D rotation matrix using numpy.
 
     Args:
-        q (list or numpy array): Quaternion [x, y, z, w].
+        q (list or numpy array): Quaternion [w, x, y, z].
 
     Returns:
         numpy array: 3x3 rotation matrix.
     """
-    x, y, z, w = q
+    w, x, y, z = q
     rotation_matrix = np.array([
         [1 - 2*y**2 - 2*z**2, 2*x*y - 2*z*w, 2*x*z + 2*y*w],
         [2*x*y + 2*z*w, 1 - 2*x**2 - 2*z**2, 2*y*z - 2*x*w],
@@ -105,8 +105,8 @@ class LandingSim():
     def __init__(self, traj_path, blender_script_path, blender_file_path):
 
         # Load trajectory from provided config file
-        self.traj_dict = (np.load(traj_path)).item()
-
+        self.traj_dict = (np.load(traj_path, allow_pickle=True)).item()
+        
         # Configs for Blender
         self.camera_cfg = {
             'path': 'simulation_imgs',           # Directory where pose and images are stored
@@ -126,16 +126,15 @@ class LandingSim():
         self.agent = Agent(self.camera_cfg, self.blender_cfg)
 
     def run_through_traj(self):
-        timesteps = (self.traj_dict).item()
+        timesteps = self.traj_dict['t']
         n = len(timesteps)
-        positions = ...
-        attitudes = ...
+        states = (self.traj_dict['state']).T
+        positions = states[:, 0:3]
+        attitudes = states[:, 6:10]
 
         for i in range(n):
             position = positions[i]
             attitude = attitudes[i]
-            time0 = time()
-            tnow = self.get_clock().now().to_msg()
             
             # Get the homogenous matrix for getting the camera image
             camera_view = np.zeros((4,4))
@@ -154,11 +153,9 @@ class LandingSim():
             img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR) 
             img = (img*255).astype(np.uint8)
 
-            time1 = time()
-            print('ITERATION TIME: ', time1 - time0)
 
         return True
 
 if __name__ == "__main__":
-    sim = LandingSim()
+    sim = LandingSim('traj_gen/trajdata.npy', 'blender_code.py', 'data_processing.py')
     sim.run_through_traj()
