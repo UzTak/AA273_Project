@@ -61,8 +61,9 @@ class Agent():
             raise
 
         # Run the capture image script in headless blender
+        print('Got here, starting Blender!')
         subprocess.run(['blender.exe', '-b', self.blend, '-P', self.blend_script, '--', pose_path, img_path, depth_path])
-
+        print('Finished running blender')
         try: 
             img = imageio.imread(img_path)
         except Exception as err:
