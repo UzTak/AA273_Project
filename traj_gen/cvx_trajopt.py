@@ -251,7 +251,7 @@ ax.set_ylabel("y")
 plt.show()
 
 # %%
-state = np.vstack([xyz, v])
+state = np.vstack([xyz, v.value])
 
 data = {
     "t" : t, 
