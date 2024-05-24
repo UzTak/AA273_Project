@@ -264,7 +264,7 @@ np.save("trajdata.npy", data)
 
 
 # %%
-data = np.load("trajdata.npy", allow_pickle=True).item()
+# data = np.load("trajdata.npy", allow_pickle=True).item()
 # np.shape(data["state"])
 
 
