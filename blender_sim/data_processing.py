@@ -6,7 +6,7 @@ import torch
 import json
 import imageio
 import subprocess
-from scipy.spatial.transform import Rotation, Slerp
+# from scipy.spatial.transform import Rotation, Slerp
 import cv2
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -39,18 +39,19 @@ class Agent():
         # Modify data dictionary to update pose
         self.data['pose'] = pose.tolist()
 
-        img, depth = self.get_data(self.data)
-
-        self.img = img
-        self.depth = depth
+        # img, depth = self.get_data(self.data)
+        self.get_data(self.data)
+        # self.img = img
+        # self.depth = depth
         self.iter += 1
 
-        return img, depth
+        # return img, depth
+        return True
     
     def get_data(self, data):
-        pose_path = self.path + f'/{self.iter}.json'
-        img_path = self.path + f'/{self.iter}.png'
-        depth_path = self.path + f'/d_{self.iter}'
+        pose_path = self.path + f"\\{self.iter}.json"
+        img_path = self.path + f"\\{self.iter}.png"
+        depth_path = self.path + f"\\d_{self.iter}"
         depth_output_file_path = depth_path + f'0001.png'
 
         try: 
@@ -61,27 +62,27 @@ class Agent():
             raise
 
         # Run the capture image script in headless blender
-        print('Got here, starting Blender!')
-        subprocess.run(['blender.exe', '-b', self.blend, '-P', self.blend_script, '--', pose_path, img_path, depth_path])
-        print('Finished running blender')
-        try: 
-            img = imageio.imread(img_path)
-        except Exception as err:
-            print(f"Unexpected {err}, {type(err)}")
-            raise
+        blender_path = "C:\\Program Files\\Blender Foundation\\Blender 4.1\\blender.exe"
+        subprocess.run([blender_path, '-b', self.blend, '-P', self.blend_script, '--', pose_path, img_path, depth_path])
+        # try: 
+        #     img = imageio.imread(img_path)
+        # except Exception as err:
+        #     print(f"Unexpected {err}, {type(err)}")
+        #     raise
         
-        try: 
-            with open(depth_output_file_path, 'rb') as f:
-                rgb = imageio.imread(depth_output_file_path)
-        except Exception as err:
-            print(f"Unexpected {err}, {type(err)}")
-            raise
+        # try: 
+        #     with open(depth_output_file_path, 'rb') as f:
+        #         rgb = imageio.imread(depth_output_file_path)
+        # except Exception as err:
+        #     print(f"Unexpected {err}, {type(err)}")
+        #     raise
 
-        depth = (rgb[..., -1]/255.)
-        depth[depth >= 1.] = 0.
-        depth *= self.far_plane
+        # depth = (rgb[..., -1]/255.)
+        # depth[depth >= 1.] = 0.
+        # depth *= self.far_plane
         
-        return img, depth
+        # return img, depth
+        return True
 
 
 def quaternion_to_rotation_matrix(q):
@@ -135,7 +136,9 @@ class LandingSim():
 
         for i in range(n):
             position = positions[i]
+            print("POSITION = ", position)
             attitude = attitudes[i]
+            print(attitude)
             
             # Get the homogenous matrix for getting the camera image
             camera_view = np.zeros((4,4))
@@ -143,20 +146,22 @@ class LandingSim():
             camera_view[:3, 3] = position
 
             # Getting the image and depth
-            img, depth = self.agent.state2image(camera_view)
+            # img, depth = self.agent.state2image(camera_view)
+            print(camera_view)
+            self.agent.state2image(camera_view)
             
-            # Process the image
-            # If alpha = 0, make color black
-            img = img/255
-            alpha = np.ma.make_mask(img[..., -1])
-            img = img[..., :3].astype(np.float32)
-            img[~alpha] = 0.
-            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR) 
-            img = (img*255).astype(np.uint8)
+            # # Process the image
+            # # If alpha = 0, make color black
+            # img = img/255
+            # alpha = np.ma.make_mask(img[..., -1])
+            # img = img[..., :3].astype(np.float32)
+            # img[~alpha] = 0.
+            # img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR) 
+            # img = (img*255).astype(np.uint8)
 
 
         return True
 
 if __name__ == "__main__":
-    sim = LandingSim('traj_gen/trajdata.npy', 'blender_code.py', 'data_processing.py')
+    sim = LandingSim('../traj_gen/trajdata.npy', "C:\\Users\\anshu\\OneDrive - Stanford\\Documents\\Class Materials\\Spring 2024\\AA273_Project\\blender_sim\\blender_code.py", "C:\\Users\\anshu\\OneDrive - Stanford\\Documents\\Class Materials\\Spring 2024\\AA273_Project\\blender_sim\\rocket_pad.blend")
     sim.run_through_traj()

@@ -80,9 +80,21 @@ if __name__ == "__main__":
     save_path_depth = bpy.path.abspath('//') + path_to_depth_saves
     save_path_img = bpy.path.abspath('//') + path_to_img_saves
 
-    scene = bpy.context.scene
-    camera = bpy.data.objects['Camera']
+    
+    # Check if a camera named "Camera" exists, if not, create it
+    camera_name = "Camera"
+    if camera_name not in bpy.data.objects:
+        # Create a new camera object
+        bpy.ops.object.camera_add()
+        camera = bpy.context.object
+        camera.name = camera_name
+        print(f"Created new camera: {camera.name}")
+    else:
+        camera = bpy.data.objects[camera_name]
+        print(f"Found existing camera: {camera.name}")
 
+    scene = bpy.context.scene
+    scene.camera = camera
     try:
         with open(arg_path,"r") as f:
             meta = json.load(f)
@@ -135,7 +147,8 @@ if __name__ == "__main__":
     
     ### SET LINKS
     links.new(rl.outputs[0], set_alpha.inputs[0])  # link Image to Viewer Image RGB
-    links.new(rl.outputs['Depth'], map_range.inputs[0])  # link Render Z 
+    # links.new(rl.outputs['Depth'], map_range.inputs[0])  # link Render Z 
+    links.new(rl.outputs[2], map_range.inputs[0])  # link Render Z 
     links.new(map_range.outputs[0], set_alpha.inputs[1])
     links.new(set_alpha.outputs[0], file_out.inputs[0])
 
