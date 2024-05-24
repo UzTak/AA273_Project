@@ -86,7 +86,7 @@ prob.solve()
 m = np.exp(z.value)[:-1]
 print(m.shape)
 f = m * u.value
-funit = 100*(f/ np.linalg.norm(f, 2, 0))
+fdir = 100*(f/ np.linalg.norm(f, 2, 0))
 print(f.shape)
 
 # %%
@@ -104,13 +104,16 @@ ax.view_init(azim=225)
 #Have your solution be stored in p
 ax.plot(xs=p.value[0,:],ys=p.value[1,:],zs=p.value[2,:], c='b', lw=2, zorder = 5)
 ax.quiver(p.value[0,:-1],p.value[1,:-1],p.value[2,:-1], 
-         funit[0,:], funit[1,:], funit[2,:], zorder=5, color="black")
+         fdir[0,:], fdir[1,:], fdir[2,:], zorder=5, color="black")
 
 ax.set_xlabel("x"); ax.set_ylabel("y"); ax.set_zlabel("z")
 # ax.axis('equal')
 plt.show()
 
 # %%
+
+unorm = f / np.linalg.norm(f, axis=0) 
+
 def skw(a):
     return np.array([[0, -a[2], a[1]],
                      [a[2], 0, -a[0]],
@@ -180,6 +183,7 @@ t =  np.arange(np.shape(xyz)[1])
 
 # %%
 qw, dw = track_target(xyz, t)
+qw_thrust, _ = track_target(unorm, t[:-1])
 
 # %%
 def q2rotmat(q):
@@ -238,26 +242,29 @@ def plot_attitude_track(ax, rtn, qw, coneAngle, height=20):
 theta = np.pi/6
 ax = plt.figure().add_subplot(projection='3d')
 plot_attitude_track(ax, xyz, qw, theta, height=10)
+ax.quiver(p.value[0,:-1],p.value[1,:-1],p.value[2,:-1], 
+         unorm[0], unorm[1], unorm[2], length=20, color="black")
 
-# ax.quiver(p.value[0,:-1],p.value[1,:-1],p.value[2,:-1], 
-#          f.value[0,:], f.value[1,:], f.value[2,:], zorder=5, color="black")
 ax.axis("equal")
 ax.set_xlabel("x")
 ax.set_ylabel("y")
 plt.show()
 
 # %%
-state = np.vstack([xyz, qw])
+state = np.vstack([xyz, v])
 
 data = {
     "t" : t, 
-    "state" : rv,
+    "pos" : state,
+    "qw_camera": qw,
+    "qw_rocket": qw_thrust
 }
 
 np.save("trajdata.npy", data)
 
 
 # %%
-
+data = np.load("trajdata.npy", allow_pickle=True).item()
+# np.shape(data["state"])
 
 
