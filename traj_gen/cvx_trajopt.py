@@ -15,19 +15,19 @@ Fmin = 0
 p0 = np.array([50,50,1000]) #np.matrix('50 ;50; 100')
 # v0 = np.array([-10,0,-10])  #np.matrix('-10; 0; -10')
 v0 = np.array([-2,-5,-120])
-alpha = 0.5 # glide slope angle
-thetap = np.pi/4
+gamma_gs = 0.5 # glide slope angle
+gamma_p = np.pi/4
 
 Isp = 282
-gamma = 1/(Isp*g) # fuel usage coefficient
+alpha = 1/(Isp*g) # fuel usage coefficient
 
 mdry = 22.2e3 # dry mass in kg
 mwet = mdry + 20e3 # wet mass in kg
 
 K = 60
 
-z0 = np.array([np.log(mwet - gamma*Fmax*h*i) for i in range(K+1)])
-z1 = np.array([np.log(mwet - gamma*Fmin*h*i) for i in range(K+1)])
+z0 = np.array([np.log(mwet - alpha*Fmax*h*i) for i in range(K+1)])
+z1 = np.array([np.log(mwet - alpha*Fmin*h*i) for i in range(K+1)])
 # print(z0)
 # print(z1)
 
@@ -60,10 +60,10 @@ con += [v[:,i+1] == v[:,i] + u[:,i]*h - h*g*np.array([0,0,1]) for i in range(K)]
 con += [p[:,i+1] == p[:,i] + (h/2)*(v[:,i]+v[:,i+1]) for i in range(K)]
 
 # glide-slope constraint
-con += [p[2,i] >= alpha*cp.norm(p[0:2,i]) for i in range(K+1)]
+con += [p[2,i] >= gamma_gs*cp.norm(p[0:2,i]) for i in range(K+1)]
 
 # mass flow rate and thrust constraints
-con += [z[i+1] == z[i] - h*gamma*xi[i] for i in range(K)]
+con += [z[i+1] == z[i] - h*alpha*xi[i] for i in range(K)]
 con += [mumin[i] * (1 - (z[i] - z0[i]) + 0.5*cp.square(z[i] - z0[i])) <= xi[i] for i in range(K)]
 con += [mumax[i] * (1 - (z[i] - z0[i])) >= xi[i] for i in range(K)]
 con += [z0[i] <= z[i] for i in range(K+1)]
@@ -71,7 +71,7 @@ con += [z[i] <= z1[i] for i in range(K+1)]
 
 # pointing constraint
 con += [cp.norm(u[:,i]) <= xi[i] for i in range(K)]
-con += [u[2,i] >= xi[i]*np.cos(thetap) for i in range(K)]
+con += [u[2,i] >= xi[i]*np.cos(gamma_p) for i in range(K)]
 
 # spacecraft mass limits
 con += [cp.log(mdry) <= z[-1]]
@@ -97,7 +97,7 @@ ax = fig.add_subplot(projection="3d")
 X = np.linspace(-40, 55, num=30)
 Y = np.linspace(0, 55, num=30)
 X, Y = np.meshgrid(X, Y)
-Z = alpha*np.sqrt(X**2+Y**2)
+Z = gamma_gs*np.sqrt(X**2+Y**2)
 ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.autumn, linewidth=0.1, alpha = 0.7, edgecolors="k")
 ax = plt.gca()
 ax.view_init(azim=225)
