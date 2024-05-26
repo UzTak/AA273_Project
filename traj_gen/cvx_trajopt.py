@@ -119,7 +119,7 @@ def skw(a):
                      [a[2], 0, -a[0]],
                      [-a[1], a[0], 0]])
 
-def track_target(r_rtn, t, x_d=np.array([1, 0, 0]), r_target=np.zeros((3,1))):
+def track_target(r_rtn, t, x_d=np.array([0, 0, 1]), r_target=np.zeros((3,1))):
     """
     Analytical formulation of quaternion to track the target (default: origin)
     Args:
@@ -241,11 +241,11 @@ def plot_attitude_track(ax, rtn, qw, coneAngle, height=20):
 # %%
 theta = np.pi/6
 ax = plt.figure().add_subplot(projection='3d')
-plot_attitude_track(ax, xyz, qw, theta, height=10)
+plot_attitude_track(ax, xyz, qw, theta, height=100)
 ax.quiver(p.value[0,:-1],p.value[1,:-1],p.value[2,:-1], 
-         unorm[0], unorm[1], unorm[2], length=20, color="black")
+         unorm[0], unorm[1], unorm[2], length=100, color="black")
 
-ax.axis("equal")
+# ax.axis("equal")
 ax.set_xlabel("x")
 ax.set_ylabel("y")
 plt.show()
