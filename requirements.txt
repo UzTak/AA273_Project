@@ -9,3 +9,4 @@ csv
 scipy
 opencv
 opencv-contrib-python
+control
