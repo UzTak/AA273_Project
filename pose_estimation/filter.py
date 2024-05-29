@@ -1,7 +1,8 @@
 import numpy as np
 import scipy as sp
 import control
-from dynamics_rot import q_mul, get_phi, get_stm_qw, dyn_qw_lin, get_stm_pw, mekf_stm
+from dynamics_rot import q_mul, ode_qw, mekf_stm
+from scipy.integrate import odeint 
 
 def ssDef(x, dt):
     A = None
@@ -50,26 +51,34 @@ class MEKF(Filter):
 
     def step(self, u, y, I):
         
-        # predict step
+        #### predict step ####
+
+        # nonlinear quat prop
         qw = np.block([
             [self.qref],
             [self.mu[3:]]
         ])
-        Aqq, Aqw, _ = dyn_qw_lin(qw,I)
+        qw = odeint(ode_qw, qw, [0,self.dt], args=(I, np.zeros(3,1)))[1]
+        q_tplus_t = qw[:4]
 
-        Phi, B, C = mekf_stm(self.mu, J, self.dt) 
-        q_tplus_t = self.quatUpdate(Aqq, Aqw, qw)
+        # lineaer state mean and cov prop
+        Phi, B, C = mekf_stm(self.mu, I, self.dt) 
         mu_tplus_t = self.dynFunc(self.mu, u, Phi, B, self.dt)
         Sig_tplus_t = Phi @ self.Sig @ Phi.T + self.Q
 
-        # update step
+        #### update step ####
+
+        # kalman gain calc
         K = Sig_tplus_t @ C.T @ np.linalg.inv(C @ Sig_tplus_t @ C.T + self.R)
+
+        # meas model
         z = self.measFunc(mu_tplus_t, C, self.dt)
 
+        # state mean and cov update
         mu_tplus_tplus = mu_tplus_t + K @ (y - z)
         self.Sig = Sig_tplus_t - K @ C @ Sig_tplus_t
 
-        # reset step
+        #### reset step ####
         self.qref = self.quatReset(mu_tplus_tplus, q_tplus_t)
         self.mu = np.block([
             [np.zeros([3, 1])],
@@ -78,7 +87,7 @@ class MEKF(Filter):
 
         return self.mu, self.Sig
     
-    def quatUpdate(self, Aqq, Aqw, qw):
+    def linquatUpdate(self, Aqq, Aqw, qw):
         # extract velocities from current prior
         Aq = np.block([Aqq, Aqw])
         q_update = Aq @ qw

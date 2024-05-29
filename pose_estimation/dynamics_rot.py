@@ -84,7 +84,7 @@ def q_kin(q, omega):
     return 0.5 * q_mul(q, np.array([0, omega[0], omega[1], omega[2]]))
 
 def euler_dyn(w, I, tau):
-    return la.inv(I).dot(tau - np.cross(w, I.dot(w)))
+    return la.inv(I).dot(tau.reshape((3,)) - np.cross(w, I.dot(w)).reshape((3,)))
 
 def euler_dyn_rel(w_dc_d, q_dc, w_cI_c, wdot_cI_c, I, tau):
     """
