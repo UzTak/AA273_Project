@@ -1,6 +1,7 @@
 import numpy as np
 import scipy as sp
 import control
+from dynamics_rot import * 
 
 def ssDef(x, dt):
     A = None
@@ -44,7 +45,7 @@ class MEKF(Filter):
     def step(self, u, y):
         A, B, C, Q, R = self.ssMatFunc(self.mu, u, self.dt)
 
-        # predict step
+        # predict step 
         q_tplus_t = self.kinFunc(self.mu, self.qref)
         mu_tplus_t = self.dynFunc(self.mu, u, A, B, self.dt)
         Sig_tplus_t = A @ self.Sig @ A.T + Q
