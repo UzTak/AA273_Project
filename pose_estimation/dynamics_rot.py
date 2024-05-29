@@ -321,6 +321,26 @@ def track_target(r_rtn, t, r_target=np.zeros((3,1))):
     return qw, dM
 
 
+def mekf_stm(pw,J,dt):
+    """
+    "Relative Computer Vision-Based Navigation for Small Inspection Spacecraft" (Tweddle, 2015)
+    Eq. 17 - 21
+    """
+
+    A = np.block([[-1/2*skw(pw[3:]), np.eye(3), np.zeros((3,3))],  
+                  [np.zeros((3,6)), np.linalg.inv(J)], 
+                  [np.zeros((3,9))]])
+    
+    Φ = expm(A*dt)
+    Φ12 = Φ[3:6, :3]
+    
+    Phi = np.block([[-expm(-dt/2*skw(pw[3:])), Φ12], 
+                    [np.zeros((3,3)), np.eye(3)]])
+    
+    return Phi 
+    
+    
+
 
 ## analytical solution of torque-free motion
 # assumimg I1 >= I2 >= I3
