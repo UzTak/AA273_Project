@@ -12,9 +12,9 @@ g = 9.807
 # m = 10.
 Fmax = 854e3
 Fmin = 0
-p0 = np.array([50,50,1000]) #np.matrix('50 ;50; 100')
-# v0 = np.array([-10,0,-10])  #np.matrix('-10; 0; -10')
-v0 = np.array([-2,-5,-120])
+p0 = np.array([50,50,100]) #np.matrix('50 ;50; 100')
+v0 = np.array([-10,0,-10])  #np.matrix('-10; 0; -10')
+# v0 = np.array([-2,-5,-120])
 gamma_gs = 0.5 # glide slope angle
 gamma_p = np.pi/4
 
@@ -24,7 +24,7 @@ alpha = 1/(Isp*g) # fuel usage coefficient
 mdry = 22.2e3 # dry mass in kg
 mwet = mdry + 20e3 # wet mass in kg
 
-K = 60
+K = 15
 
 z0 = np.array([np.log(mwet - alpha*Fmax*h*i) for i in range(K+1)])
 z1 = np.array([np.log(mwet - alpha*Fmin*h*i) for i in range(K+1)])
@@ -119,7 +119,7 @@ def skw(a):
                      [a[2], 0, -a[0]],
                      [-a[1], a[0], 0]])
 
-def track_target(r_rtn, t, x_d=np.array([0, 0, 1]), r_target=np.zeros((3,1))):
+def track_target(r_rtn, t, x_d=np.array([0, 0, -1]), r_target=np.zeros((3,1))):
     """
     Analytical formulation of quaternion to track the target (default: origin)
     Args:
@@ -201,7 +201,7 @@ def plot_attitude_track(ax, rtn, qw, coneAngle, height=20):
     if rtn.shape[1] != qw.shape[1]:
         raise ValueError("rtn and qw have different length. Check the input variable")
 
-    Nfreq = rtn.shape[1] // 20  # frequency of plotting axes
+    Nfreq = rtn.shape[1] // 3  # frequency of plotting axes
     print(Nfreq)
     N = rtn.shape[1]
 
@@ -243,7 +243,7 @@ theta = np.pi/6
 ax = plt.figure().add_subplot(projection='3d')
 plot_attitude_track(ax, xyz, qw, theta, height=100)
 ax.quiver(p.value[0,:-1],p.value[1,:-1],p.value[2,:-1], 
-         unorm[0], unorm[1], unorm[2], length=100, color="black")
+         unorm[0], unorm[1], unorm[2], length=10, color="black")
 
 # ax.axis("equal")
 ax.set_xlabel("x")
@@ -260,7 +260,7 @@ data = {
     "qw_rocket": qw_thrust
 }
 
-np.save("trajdata.npy", data)
+np.save("traj_gen/trajdata.npy", data)
 
 
 # %%
