@@ -53,15 +53,11 @@ ARUCO_DICT = {
 }
  
 # Side length of the ArUco marker in meters 
-aruco_marker_side_length = 0.0785
+aruco_marker_side_length = 20.
 
 # Define intrinsic parameters
-fx = 1000.0  # Focal length in pixels
-fy = 1000.0  # Focal length in pixels
-cx = 320.0   # Optical center x-coordinate in pixels
-cy = 240.0   # Optical center y-coordinate in pixels
 dist_coeffs = np.zeros((4, 1))  # Distortion coefficients (if applicable)
-K_mtx = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
+K_mtx = np.array([[424.3378, 0., 424.], [0., 424.3378, 240.], [0., 0., 1.]])
 
 def euler_from_quaternion(x, y, z, w):
     """
@@ -102,6 +98,8 @@ def draw_axes(image, K_mtx, dist_coeffs, rvec, tvec, axis_length):
     image = cv2.line(image, axis_points[0], axis_points[2], (0, 255, 0), 3)  # Y-axis (green)
     image = cv2.line(image, axis_points[0], axis_points[3], (255, 0, 0), 3)  # Z-axis (blue)
 
+
+
     return image
 
 # Function to extract image number from filename
@@ -121,7 +119,7 @@ def main():
         print("[INFO] ArUCo tag of '{}' is not supported".format(args["type"]))
         sys.exit(0)
 
-    folder_path = 'C:/Users/fares/OneDrive/Desktop/Classes/AA273/Project/Blender_Images'
+    folder_path = 'C:/Users/fares/OneDrive/Desktop/Classes/AA273/AA273_Project/blender_sim/simulation_imgs'
     
     # Load the ArUco dictionary
     print("[INFO] detecting '{}' markers...".format(aruco_dictionary_name))
