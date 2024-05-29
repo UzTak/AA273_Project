@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
 import control
-from dynamics_rot import q_mul, get_phi, get_stm_qw, dyn_qw_lin, get_stm_pw
+from dynamics_rot import q_mul, get_phi, get_stm_qw, dyn_qw_lin, get_stm_pw, mekf_stm
 
 def ssDef(x, dt):
     A = None
@@ -12,8 +12,16 @@ def ssDef(x, dt):
 
     return A, B, C, Q, R
 
+def linDynUpdate(x, u, A, B, dt):
+    xplus = A @ x + B @ u
+    return xplus
+
+def linMeasUpdate(x, C, dt):
+    y = C @ x
+    return y
+
 class Filter:
-    def __init__(self, mu0, Sig0,
+    def __init__(self, mu0, Sig0, Q, R,
                  dynFunc,
                  measFunc,
                  ssMatFunc = ssDef, 
@@ -22,6 +30,8 @@ class Filter:
         
         self.mu = mu0
         self.Sig = Sig0
+        self.Q = Q,
+        self.R = R
         self.dt = dt
         self.rng_seed = rng_seed
         self.ssMatFunc = ssMatFunc
@@ -29,31 +39,31 @@ class Filter:
         self.measFunc = measFunc
 
 class MEKF(Filter):
-    def __init__(self, mu0, Sig0, qref, 
-                 dynFunc,
-                 measFunc,
+    def __init__(self, mu0, Sig0, Q, R, qref, 
+                 dynFunc = linDynUpdate,
+                 measFunc = linMeasUpdate,
                  ssMatfunc = ssDef,
                  dt = 1,
                  rng_seed = 273):
-        super().__init__(mu0, Sig0, dynFunc, measFunc, ssMatfunc, dt, rng_seed)
+        super().__init__(mu0, Sig0, Q, R, dynFunc, measFunc, ssMatfunc, dt, rng_seed)
         self.qref = qref
 
     def step(self, u, y, I):
-        A, B, C, Q, R = self.ssMatFunc(self.mu, u, self.dt)
+        
+        # predict step
         qw = np.block([
             [self.qref],
             [self.mu[3:]]
         ])
-        Aqq, Aqw, Aww = dyn_qw_lin(qw,I)
+        Aqq, Aqw, _ = dyn_qw_lin(qw,I)
 
-        Ax = get_stm_pw(pw, self.dt, J)
-        # predict step 
+        Phi, B, C = mekf_stm(self.mu, J, self.dt) 
         q_tplus_t = self.quatUpdate(Aqq, Aqw, qw)
-        mu_tplus_t = self.dynFunc(self.mu, u, A, B, self.dt)
-        Sig_tplus_t = A @ self.Sig @ A.T + Q
+        mu_tplus_t = self.dynFunc(self.mu, u, Phi, B, self.dt)
+        Sig_tplus_t = Phi @ self.Sig @ Phi.T + self.Q
 
         # update step
-        K = Sig_tplus_t @ C.T @ np.linalg.inv(C @ Sig_tplus_t @ C.T + R)
+        K = Sig_tplus_t @ C.T @ np.linalg.inv(C @ Sig_tplus_t @ C.T + self.R)
         z = self.measFunc(mu_tplus_t, C, self.dt)
 
         mu_tplus_tplus = mu_tplus_t + K @ (y - z)
@@ -91,8 +101,6 @@ class MEKF(Filter):
 
         return q_reset
 
-
-    
     def checkObsv(self, u):
         A, _, C, _, _ = self.ssMatFunc(self.mu, u, self.dt)
         O = control.obsv(A, C)
