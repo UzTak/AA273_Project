@@ -81,13 +81,13 @@ def euler_from_quaternion(x, y, z, w):
       
     return roll_x, pitch_y, yaw_z # in radians
 
-def draw_axes(image, K_mtx, dist_coeffs, rvec, tvec, axis_length):
+def draw_axes(image, K_mtx, dist_coeffs, rvec, tvec, corners, axis_length):
     # Project axes points
     points = np.float32([[0, 0, 0], [axis_length, 0, 0], [0, axis_length, 0], [0, 0, axis_length]]).reshape(-1, 3)
     axis_points, _ = cv2.projectPoints(points, rvec, tvec, K_mtx, dist_coeffs)
 
-    print("axis_points shape:", axis_points.shape)
-    print("axis_points:", axis_points)
+    # print("axis_points shape:", axis_points.shape)
+    # print("axis_points:", axis_points)
 
     # Convert points to tuples
     axis_points = np.squeeze(axis_points).astype(int)
@@ -98,7 +98,14 @@ def draw_axes(image, K_mtx, dist_coeffs, rvec, tvec, axis_length):
     image = cv2.line(image, axis_points[0], axis_points[2], (0, 255, 0), 3)  # Y-axis (green)
     image = cv2.line(image, axis_points[0], axis_points[3], (255, 0, 0), 3)  # Z-axis (blue)
 
-
+    # Draw detected corners 
+    # corners = np.array(corners)
+    corners = corners.reshape(4,2)
+    print('corners', corners)
+    for corner in corners:
+        corner_int = tuple(map(int, corner))
+        print('corner, ', corner_int)
+        cv2.circle(image, corner_int, 5, (0, 0, 255), -1)  # Red circle for detected corners
 
     return image
 
@@ -148,7 +155,7 @@ def main():
 
             # Detect ArUco markers in the image
             (corners, marker_ids, _) = cv2.aruco.detectMarkers(image, this_aruco_dictionary, parameters=this_aruco_parameters)
-            
+            print(corners)
             # Check if markers were detected
             if marker_ids is not None:
                 # Iterate through detected markers
@@ -167,6 +174,13 @@ def main():
                         rotation_matrix[0:3, 0:3] = cv2.Rodrigues(np.array(rvecs[j][0]))[0]
                         r = R.from_matrix(rotation_matrix[0:3, 0:3])
                         quat = r.as_quat()
+
+                        # Draw axes
+                        image_with_axes = draw_axes(image.copy(), K_mtx, dist_coeffs, rvecs[j], tvecs[j], corners[0], axis_length=20)
+                        # Display the image with axes
+                        cv2.imshow('Image with Axes', image_with_axes)
+                        cv2.waitKey(0)
+                        cv2.destroyAllWindows()
 
                         pose_info = {
                             'filename': filename,
