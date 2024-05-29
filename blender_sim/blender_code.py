@@ -4,6 +4,7 @@
 import bpy
 import sys
 from mathutils import Matrix
+import os
 import json
 import numpy as np
 
@@ -156,5 +157,18 @@ if __name__ == "__main__":
     bpy.context.scene.use_nodes = True
     bpy.context.scene.view_layers[0].use_pass_z = True
 
+    # redirect output to log file
+    logfile = 'blender_render.log'
+    open(logfile, 'a').close()
+    old = os.dup(sys.stdout.fileno())
+    sys.stdout.flush()
+    os.close(sys.stdout.fileno())
+    fd = os.open(logfile, os.O_WRONLY)
+
     scene.render.filepath = save_path_img
     bpy.ops.render.render(write_still = True)
+
+    # disable output redirection
+    os.close(fd)
+    os.dup(old)
+    os.close(old)

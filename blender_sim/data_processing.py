@@ -130,15 +130,14 @@ class LandingSim():
     def run_through_traj(self):
         timesteps = self.traj_dict['t']
         n = len(timesteps)
-        states = (self.traj_dict['state']).T
-        positions = states[:, 0:3]
-        attitudes = states[:, 6:10]
+        pos_and_vel = (self.traj_dict['pos']).T
+        positions = pos_and_vel[:, 0:3]
+        attitudes_and_rates = (self.traj_dict['qw_camera']).T
+        attitudes = attitudes_and_rates[:, 0:4]
 
         for i in range(n):
             position = positions[i]
-            print("POSITION = ", position)
             attitude = attitudes[i]
-            print(attitude)
             
             # Get the homogenous matrix for getting the camera image
             camera_view = np.zeros((4,4))
@@ -147,7 +146,6 @@ class LandingSim():
 
             # Getting the image and depth
             # img, depth = self.agent.state2image(camera_view)
-            print(camera_view)
             self.agent.state2image(camera_view)
             
             # # Process the image
