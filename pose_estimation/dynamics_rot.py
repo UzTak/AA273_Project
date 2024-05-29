@@ -337,10 +337,14 @@ def mekf_stm(pw,J,dt):
     Phi = np.block([[-expm(-dt/2*skw(pw[3:])), Φ12], 
                     [np.zeros((3,3)), np.eye(3)]])
     
-    return Phi 
+    B = np.block([[-1/2*skw(pw[3:])], [np.zeros((3,3))]])
+    C = np.block([[np.eye(3), np.zeros((3,3))], 
+                  [np.eye(3), np.zeros((3,3))],
+                  [np.zeros((3,3)), np.eye(3)]])
+    
+    return Phi, B, C 
     
     
-
 
 ## analytical solution of torque-free motion
 # assumimg I1 >= I2 >= I3

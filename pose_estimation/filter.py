@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
 import control
-from dynamics_rot import * 
+from dynamics_rot import q_mul, get_phi, get_stm_qw, dyn_qw_lin, get_stm_pw
 
 def ssDef(x, dt):
     A = None
@@ -31,22 +31,24 @@ class Filter:
 class MEKF(Filter):
     def __init__(self, mu0, Sig0, qref, 
                  dynFunc,
-                 kinFunc,
-                 quatReset,
                  measFunc,
                  ssMatfunc = ssDef,
                  dt = 1,
                  rng_seed = 273):
         super().__init__(mu0, Sig0, dynFunc, measFunc, ssMatfunc, dt, rng_seed)
         self.qref = qref
-        self.kinFunc = kinFunc
-        self.quatReset = quatReset
 
-    def step(self, u, y):
+    def step(self, u, y, I):
         A, B, C, Q, R = self.ssMatFunc(self.mu, u, self.dt)
+        qw = np.block([
+            [self.qref],
+            [self.mu[3:]]
+        ])
+        Aqq, Aqw, Aww = dyn_qw_lin(qw,I)
 
+        Ax = get_stm_pw(pw, self.dt, J)
         # predict step 
-        q_tplus_t = self.kinFunc(self.mu, self.qref)
+        q_tplus_t = self.quatUpdate(Aqq, Aqw, qw)
         mu_tplus_t = self.dynFunc(self.mu, u, A, B, self.dt)
         Sig_tplus_t = A @ self.Sig @ A.T + Q
 
@@ -65,6 +67,31 @@ class MEKF(Filter):
         ])
 
         return self.mu, self.Sig
+    
+    def quatUpdate(self, Aqq, Aqw, qw):
+        # extract velocities from current prior
+        Aq = np.block([Aqq, Aqw])
+        q_update = Aq @ qw
+
+        return q_update
+    
+    def quatReset(self, mu_post, q_update):
+        # slice MRP from posterior mean
+        apvec = mu_post[:3]
+        ap = np.linalg.norm(apvec)
+
+        # compose delta q
+        dq = np.zeros([3, 1])
+        dq[0] = 16 - ap**2
+        dq[1:] = 8*apvec
+        dq *= 1/(16 + ap**2)
+
+        # perform quat multiplication for reset
+        q_reset = q_mul(dq, q_update)
+
+        return q_reset
+
+
     
     def checkObsv(self, u):
         A, _, C, _, _ = self.ssMatFunc(self.mu, u, self.dt)

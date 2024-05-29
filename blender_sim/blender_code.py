@@ -9,7 +9,6 @@ import json
 import numpy as np
 
 def get_calibration_matrix_K_from_blender(mode='simple'):
-
     scene = bpy.context.scene
 
     scale = scene.render.resolution_percentage / 100
@@ -164,7 +163,7 @@ if __name__ == "__main__":
     sys.stdout.flush()
     os.close(sys.stdout.fileno())
     fd = os.open(logfile, os.O_WRONLY)
-
+    
     scene.render.filepath = save_path_img
     bpy.ops.render.render(write_still = True)
 
@@ -172,3 +171,6 @@ if __name__ == "__main__":
     os.close(fd)
     os.dup(old)
     os.close(old)
+
+    K = get_calibration_matrix_K_from_blender()
+    print('Camera calibration matrix = ', K)
