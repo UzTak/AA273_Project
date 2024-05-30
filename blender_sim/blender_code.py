@@ -8,7 +8,7 @@ import os
 import json
 import numpy as np
 
-def get_calibration_matrix_K_from_blender(mode='simple'):
+def get_calibration_matrix_K_from_blender(mode='complete'):
     scene = bpy.context.scene
 
     scale = scene.render.resolution_percentage / 100
@@ -21,6 +21,9 @@ def get_calibration_matrix_K_from_blender(mode='simple'):
 
         aspect_ratio = width / height
         K = np.zeros((3,3), dtype=np.float32)
+        print("camera angle", camdata.angle)
+        print("width of the image", width)
+        print("Height of the image", height)
         K[0][0] = width / 2 / np.tan(camdata.angle / 2)
         K[1][1] = height / 2. / np.tan(camdata.angle / 2) * aspect_ratio
         K[0][2] = width / 2.
@@ -163,7 +166,7 @@ if __name__ == "__main__":
     sys.stdout.flush()
     os.close(sys.stdout.fileno())
     fd = os.open(logfile, os.O_WRONLY)
-    
+
     scene.render.filepath = save_path_img
     bpy.ops.render.render(write_still = True)
 
