@@ -57,7 +57,7 @@ aruco_marker_side_length = 20.
 
 # Define intrinsic parameters
 dist_coeffs = np.zeros((4, 1))  # Distortion coefficients (if applicable)
-K_mtx = np.array([[424.3378, 0., 424.], [0., 424.3378, 240.], [0., 0., 1.]])
+K_mtx = np.array([[424.3378, 0., 424.], [0., 360.2868, 240.], [0., 0., 1.]])
 
 def euler_from_quaternion(x, y, z, w):
     """
@@ -155,29 +155,51 @@ def main():
 
             # Detect ArUco markers in the image
             (corners, marker_ids, _) = cv2.aruco.detectMarkers(image, this_aruco_dictionary, parameters=this_aruco_parameters)
-            print(corners)
+            # print(corners)
+            aruco_points_3D = np.array([[-10, 10, 0],
+                                        [10, 10, 0],
+                                        [10, -10, 0],
+                                        [-10, -10, 0]]) # coords of the corners in the tag's local frame
+            image_points = np.array(corners)[0].reshape(-1,2) # 2D pixel coords of corners
+
             # Check if markers were detected
             if marker_ids is not None:
                 # Iterate through detected markers
                 for i, marker_id in enumerate(marker_ids):
                     # Estimate pose for each marker
-                    rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners[i], aruco_marker_side_length, K_mtx, dist_coeffs)
+                    # rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners[i], aruco_marker_side_length, K_mtx, dist_coeffs)
+                    success, rvecs, tvecs = cv2.solvePnP(aruco_points_3D, image_points, K_mtx, dist_coeffs)
+
 
                     # Store pose information in camera_poses list
                     for j in range(len(marker_ids)):
 
                         # Storing the position info
-                        transformation_translation = tvecs[j][0]
+                        # transformation_translation = tvecs[j][0]
 
                         # Storing the rotation info
-                        rotation_matrix = np.eye(4)
-                        rotation_matrix[0:3, 0:3] = cv2.Rodrigues(np.array(rvecs[j][0]))[0]
-                        r = R.from_matrix(rotation_matrix[0:3, 0:3])
-                        quat = r.as_quat()
+                        # rotation_matrix = np.eye(4)
+                        # rotation_matrix[0:3, 0:3] = cv2.Rodrigues(np.array(rvecs[j][0]))[0]
+                        # r = R.from_matrix(rotation_matrix[0:3, 0:3])
 
-                        # Draw axes
-                        image_with_axes = draw_axes(image.copy(), K_mtx, dist_coeffs, rvecs[j], tvecs[j], corners[0], axis_length=20)
+                        est_pose = np.eye(4)
+                        r = cv2.Rodrigues(rvecs[j][0])[0]
+                        print('r', r)
+                        w2c_cv = np.hstack([r, tvecs.squeeze().reshape(-1,1)])
+
+                        est_pose[:3] = w2c_cv
+                        est_pose = np.linalg.inv(est_pose)
+                        est_pose[:, 1] = -est_pose[:,1]
+                        est_pose[:, 2] = -est_pose[:,2]
+
+                        transformation_translation = est_pose[:3,3]
+                        rotation_matrix = est_pose[:3,:3]
+                        rot = R.from_matrix(rotation_matrix)
+
+                        quat = rot.as_quat() 
+
                         # Display the image with axes
+                        image_with_axes = draw_axes(image.copy(), K_mtx, dist_coeffs, rvecs[j], tvecs[j], corners[0], axis_length=20)
                         cv2.imshow('Image with Axes', image_with_axes)
                         cv2.waitKey(0)
                         cv2.destroyAllWindows()
