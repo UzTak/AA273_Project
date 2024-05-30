@@ -78,7 +78,7 @@ class MEKF(Filter):
 
         #### reset step ####
         self.qref = self.quatReset(mu_tplus_tplus, q_tplus_t)
-        self.mu = np.concatenate((np.zeros((3,)), mu_tplus_t[3:]))
+        self.mu = np.concatenate((np.zeros((3,)), mu_tplus_tplus[3:]))
 
         qw = np.concatenate([self.qref, self.mu[3:]])
 

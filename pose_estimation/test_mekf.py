@@ -6,10 +6,10 @@ from dynamics.plot_misc import *
 from filter import *
 
 J = np.diag([300,200,150])
-tf = 100
+tf = 120
 
 q0 = np.array([0.0, 0.0, 0.0, 1.0])
-w0 = np.array([0.1, 0.1, 0.1])
+w0 = np.array([0.05, 0.05, 0.05])
 
 # numerical integration 
 dt = 0.5 
@@ -30,7 +30,7 @@ for i in range(len(t)-1):
 
 
 qw0 = np.concatenate((q0, w0))
-mu0 = np.array([0.0, 0.0, 0.0, 0.1, 0.1, 0.1])
+mu0 = np.array([0.0, 0.0, 0.0, 0.05, 0.05, 0.05])
 Sig0 = np.diag([1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4])
 n_steps = len(t)-1 
 Q = np.diag([1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4])
