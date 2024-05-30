@@ -84,13 +84,6 @@ class MEKF(Filter):
 
         return qw, self.Sig
     
-    def linquatUpdate(self, Aqq, Aqw, qw):
-        # extract velocities from current prior
-        Aq = np.block([Aqq, Aqw])
-        q_update = Aq @ qw
-
-        return q_update
-    
     def quatReset(self, mu_post, q_update):
         # slice MRP from posterior mean
         apvec = mu_post[:3]
@@ -106,6 +99,13 @@ class MEKF(Filter):
         q_reset = q_mul(dq, q_update)
 
         return q_reset
+    
+    # def linquatUpdate(self, Aqq, Aqw, qw):
+    #     # extract velocities from current prior
+    #     Aq = np.block([Aqq, Aqw])
+    #     q_update = Aq @ qw
+
+    #     return q_update
 
     # def checkObsv(self, u):
     #     A, _, C, _, _ = self.ssMatFunc(self.mu, u, self.dt)

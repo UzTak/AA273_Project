@@ -4,6 +4,7 @@ from scipy.integrate import odeint
 from dynamics.dynamics_rot import *
 from dynamics.plot_misc import *
 from filter import *
+from meas_gen_utils import *
 
 J = np.diag([300,200,150])
 tf = 120
@@ -18,18 +19,25 @@ t = np.linspace(0, tf, n_steps)
 qw = odeint(ode_qw, np.concatenate((q0, w0)), t, args=(J,np.zeros((1,3))))
 # plot_sol_qw2(np.transpose(qw), None, t, qw_ref=None)
 
-uhist = np.zeros((len(t)-1,3)) 
-yhist = np.zeros((len(t)-1,9))
+Rc = np.diag((1e-4)*np.ones((3,)))
+q_cam = np.copy(qw[1:,:4])
 
 for i in range(len(t)-1):
-    q, w = qw[i,:4], qw[i,4:]
-    p1 = 1e-3 * np.random.randn(3)
-    p2 = 1e-3 * np.random.randn(3)
-    w1 = w + 1e-3 * np.random.randn(3)
-    yhist[i] = np.concatenate((p1, p2, w1))
+    dq = np.zeros((4,))
+    dq[0] = 1
+    dq[1:] = Rc @ np.random.randn(3)
+    dq /= np.linalg.norm(dq)
+    q_cam[i,:] = q_mul(dq, q_cam[i,:])
+
+Rw = np.diag((1e-6)*np.ones(3,))
+Rp = np.diag((1e-4)*np.ones(3,))
+Rc = np.diag((1e-4)*np.ones(3,))
 
 
-qw0 = np.concatenate((q0, w0))
+yhist = gen_full_meas(qw[1:,:4], qw[1:,4:], q_cam, Rw, Rp, Rc)
+uhist = np.zeros((len(t)-1,3)) 
+
+w0 = np.concatenate((q0, w0))
 mu0 = np.array([0.0, 0.0, 0.0, 0.05, 0.05, 0.05])
 Sig0 = np.diag([1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4])
 n_steps = len(t)-1 
