@@ -1,8 +1,9 @@
 import numpy as np
 import scipy as sp
-import control
-from dynamics_rot import q_mul, ode_qw, mekf_stm
+# import control
 from scipy.integrate import odeint 
+
+from dynamics.dynamics_rot import *
 
 def ssDef(x, dt):
     A = None
@@ -31,7 +32,7 @@ class Filter:
         
         self.mu = mu0
         self.Sig = Sig0
-        self.Q = Q,
+        self.Q = Q
         self.R = R
         self.dt = dt
         self.rng_seed = rng_seed
@@ -54,11 +55,8 @@ class MEKF(Filter):
         #### predict step ####
 
         # nonlinear quat prop
-        qw = np.block([
-            [self.qref],
-            [self.mu[3:]]
-        ])
-        qw = odeint(ode_qw, qw, [0,self.dt], args=(I, np.zeros(3,1)))[1]
+        qw = np.concatenate([self.qref, self.mu[3:]])
+        qw = odeint(ode_qw, qw, [0,self.dt], args=(I, np.zeros((3,1))))[1]
         q_tplus_t = qw[:4]
 
         # lineaer state mean and cov prop
@@ -80,12 +78,11 @@ class MEKF(Filter):
 
         #### reset step ####
         self.qref = self.quatReset(mu_tplus_tplus, q_tplus_t)
-        self.mu = np.block([
-            [np.zeros([3, 1])],
-            [mu_tplus_t[3:]]
-        ])
+        self.mu = np.concatenate((np.zeros((3,)), mu_tplus_t[3:]))
 
-        return self.mu, self.Sig
+        qw = np.concatenate([self.qref, self.mu[3:]])
+
+        return qw, self.Sig
     
     def linquatUpdate(self, Aqq, Aqw, qw):
         # extract velocities from current prior
@@ -98,11 +95,11 @@ class MEKF(Filter):
         # slice MRP from posterior mean
         apvec = mu_post[:3]
         ap = np.linalg.norm(apvec)
-
+        
         # compose delta q
-        dq = np.zeros([3, 1])
+        dq = np.zeros((4))
         dq[0] = 16 - ap**2
-        dq[1:] = 8*apvec
+        dq[1:] = 8*apvec.reshape((3,))   
         dq *= 1/(16 + ap**2)
 
         # perform quat multiplication for reset
@@ -110,11 +107,11 @@ class MEKF(Filter):
 
         return q_reset
 
-    def checkObsv(self, u):
-        A, _, C, _, _ = self.ssMatFunc(self.mu, u, self.dt)
-        O = control.obsv(A, C)
-        r = np.linalg.matrix_rank(O)
-        n = np.min(O.shape)
-        is_observable = r == n
+    # def checkObsv(self, u):
+    #     A, _, C, _, _ = self.ssMatFunc(self.mu, u, self.dt)
+    #     O = control.obsv(A, C)
+    #     r = np.linalg.matrix_rank(O)
+    #     n = np.min(O.shape)
+    #     is_observable = r == n
 
-        return is_observable
+    #     return is_observable
