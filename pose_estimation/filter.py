@@ -13,7 +13,7 @@ def ssDef(x, dt):
 
     return A, B, C, Q, R
 
-def linDynUpdate(x, u, A, B, dt):
+def linStateUpdate(x, u, A, B, dt):
     xplus = A @ x + B @ u
     return xplus
 
@@ -23,8 +23,8 @@ def linMeasUpdate(x, C, dt):
 
 class Filter:
     def __init__(self, mu0, Sig0, Q, R,
-                 dynFunc,
-                 measFunc,
+                 stateUpdate = linStateUpdate,
+                 measFunc = linMeasUpdate,
                  ssMatFunc = ssDef, 
                  dt = 1,
                  rng_seed = 273):
@@ -36,17 +36,17 @@ class Filter:
         self.dt = dt
         self.rng_seed = rng_seed
         self.ssMatFunc = ssMatFunc
-        self.dynFunc = dynFunc
+        self.stateUpdate = stateUpdate
         self.measFunc = measFunc
 
 class MEKF(Filter):
     def __init__(self, mu0, Sig0, Q, R, qref, 
-                 dynFunc = linDynUpdate,
+                 stateUpdate = linStateUpdate,
                  measFunc = linMeasUpdate,
                  ssMatfunc = ssDef,
                  dt = 1,
                  rng_seed = 273):
-        super().__init__(mu0, Sig0, Q, R, dynFunc, measFunc, ssMatfunc, dt, rng_seed)
+        super().__init__(mu0, Sig0, Q, R, stateUpdate, measFunc, ssMatfunc, dt, rng_seed)
         self.qref = qref
 
     def step(self, u, y, I):
@@ -63,7 +63,7 @@ class MEKF(Filter):
 
         # lineaer state mean and cov prop
         Phi, B, C = mekf_stm(self.mu, I, self.dt) 
-        mu_tplus_t = self.dynFunc(self.mu, u, Phi, B, self.dt)
+        mu_tplus_t = self.stateUpdate(self.mu, u, Phi, B, self.dt)
         Sig_tplus_t = Phi @ self.Sig @ Phi.T + self.Q
 
         #### update step ####
