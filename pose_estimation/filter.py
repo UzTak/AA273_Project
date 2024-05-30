@@ -50,7 +50,7 @@ class MEKF(Filter):
         super().__init__(mu0, Sig0, Q, R, stateUpdate, measFunc, ssMatfunc, dt, rng_seed)
         self.qref = qref
 
-    def step(self, u, y, I):
+    def step(self, u, y, I, qtol = 1e-4):
         
         #### predict step ####
 
@@ -59,8 +59,13 @@ class MEKF(Filter):
         qw = odeint(ode_qw, qw, [0,self.dt], args=(I, np.zeros((3,1))))[1]
         q_tplus_t = qw[:4]
 
-        # lineaer state mean and cov prop
+        # linear state mean and cov prop
         Phi, B, C = mekf_stm(self.mu, I, self.dt) 
+        if np.any(np.isnan(y[:3])):
+            # print("changing C mat")
+            C[:3, :3] = np.zeros((3,3))
+            y[:3] = np.zeros((3,))
+            # print(C)
         mu_tplus_t = self.stateUpdate(self.mu, u, Phi, B, self.dt)
         Sig_tplus_t = Phi @ self.Sig @ Phi.T + self.Q
 

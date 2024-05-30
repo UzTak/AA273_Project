@@ -34,8 +34,11 @@ def cam_estimate_to_meas(qmeas, qnom, Rc):
     yp = np.zeros((T,3))
 
     for i, (qconj, q) in enumerate(zip(qconj, qnom)):
-        dq = q_mul(q, qconj)
-        yp[i,:] = quat_to_mrp(dq)
+        if np.all(qconj == 0):
+            yp[i,:] = np.full(3, np.nan)
+        else:
+            dq = q_mul(q, qconj)
+            yp[i,:] = quat_to_mrp(dq)
 
     yp += v_noise.T
 
