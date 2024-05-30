@@ -124,6 +124,39 @@ class LandingSim():
 
         return True
 
+class ImageGenerator():
+    def __init__(self, blender_script_path, blender_file_path):
+
+        # Configs for Blender
+        self.camera_cfg = {
+            'path': 'simulation_imgs',           # Directory where pose and images are stored
+            'res_x': 848,           # x resolution
+            'res_y': 480,           # y resolution
+            'trans': True,          # Boolean    (Transparency)
+            'mode': 'RGBA',          # Can be RGB-Alpha, or just RGB
+            'far_plane': 1.5           # Furthest distance for the depth map
+            }
+
+        self.blender_cfg = {
+            'blend_path': blender_file_path,
+            'script_path': blender_script_path,        # Path to Blender script for rgb
+        }
+        
+        # Classes for getting blender image and converting it to a ROS message
+        self.agent = Agent(self.camera_cfg, self.blender_cfg)
+
+    def get_image(self, position, attitude):
+        # Get the homogenous matrix for getting the camera image
+        camera_view = np.zeros((4,4))
+        camera_view[:3, :3] = quaternion_to_rotation_matrix(attitude)
+        camera_view[:3, 3] = position
+
+        # Getting the image and depth
+        self.agent.state2image(camera_view)
+
+        return True
+
+
 if __name__ == "__main__":
     sim = LandingSim('../traj_gen/trajdata.npy', "C:\\Users\\anshu\\OneDrive - Stanford\\Documents\\Class Materials\\Spring 2024\\AA273_Project\\blender_sim\\blender_code.py", "C:\\Users\\anshu\\OneDrive - Stanford\\Documents\\Class Materials\\Spring 2024\\AA273_Project\\blender_sim\\rocket_pad.blend")
     sim.run_through_traj()
