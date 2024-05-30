@@ -1,13 +1,5 @@
 #!/usr/bin/env python
   
-'''
-Welcome to the ArUco Marker Pose Estimator!
-  
-This program:
-  - Estimates the pose of ArUco Markers in a folder of images
-'''
-  
-from __future__ import print_function # Python 2/3 compatibility
 import cv2 # Import the OpenCV library
 import numpy as np # Import Numpy library
 from scipy.spatial.transform import Rotation as R
@@ -22,11 +14,6 @@ import re
 # Date created: 12/21/2021
 # Python version: 3.8
 # Edited by Faress Zwain @ Stanford University 05/28/2024
-
-# Parse the arguments
-parser = argparse.ArgumentParser(description='Description of your program.')
-parser.add_argument('--type', type=str, help='Type of ArUCo tag')
-args = parser.parse_args()
  
 # Dictionary that was used to generate the ArUco marker
 aruco_dictionary_name = "DICT_ARUCO_ORIGINAL"
@@ -52,12 +39,19 @@ ARUCO_DICT = {
   "DICT_ARUCO_ORIGINAL": cv2.aruco.DICT_ARUCO_ORIGINAL
 }
  
-# Side length of the ArUco marker in meters 
-aruco_marker_side_length = 20.
+# Side length of the ArUco marker in meters
+# UPDATE THESE IF THE BLENDER IS UPDATED
+marker_side_len = 10.
+marker_orig = np.array([0.0, 0.0, 2.5])
+
+marker_points_3d = np.array([[-marker_side_len/2.0 + marker_orig[0], marker_side_len/2.0 + marker_orig[1], + marker_orig[2]],
+                            [marker_side_len/2.0 + marker_orig[0], marker_side_len/2.0 + marker_orig[1], + marker_orig[2]],
+                            [marker_side_len/2.0 + marker_orig[0], -marker_side_len/2.0 + marker_orig[1], + marker_orig[2]],
+                            [-marker_side_len/2.0 + marker_orig[0], -marker_side_len/2.0 + marker_orig[1], + marker_orig[2]]]) 
 
 # Define intrinsic parameters
 dist_coeffs = np.zeros((4, 1))  # Distortion coefficients (if applicable)
-K_mtx = np.array([[424.3378, 0., 424.], [0., 360.2868, 240.], [0., 0., 1.]])
+K_mtx = np.array([[424.3378, 0., 424.], [0., 424.3378, 240.], [0., 0., 1.]])
 
 def euler_from_quaternion(x, y, z, w):
     """
@@ -80,6 +74,16 @@ def euler_from_quaternion(x, y, z, w):
     yaw_z = math.atan2(t3, t4)
       
     return roll_x, pitch_y, yaw_z # in radians
+
+def load_original_traj(traj_path):
+    traj_dict = (np.load(traj_path, allow_pickle=True)).item()
+    timesteps = traj_dict['t']
+    n = len(timesteps)
+    pos_and_vel = (traj_dict['pos']).T
+    positions = pos_and_vel[:, 0:3]
+    attitudes_and_rates = (traj_dict['qw_camera']).T
+    attitudes = attitudes_and_rates[:,0:4]
+    return positions, attitudes
 
 def draw_axes(image, K_mtx, dist_coeffs, rvec, tvec, corners, axis_length):
     # Project axes points
@@ -121,12 +125,8 @@ def main():
     """
     Main method of the program.
     """
-    # Check that we have a valid ArUco marker
-    if ARUCO_DICT.get(aruco_dictionary_name, None) is None:
-        print("[INFO] ArUCo tag of '{}' is not supported".format(args["type"]))
-        sys.exit(0)
 
-    folder_path = 'C:/Users/fares/OneDrive/Desktop/Classes/AA273/AA273_Project/blender_sim/simulation_imgs'
+    folder_path = './blender_sim/simulation_imgs'
     
     # Load the ArUco dictionary
     print("[INFO] detecting '{}' markers...".format(aruco_dictionary_name))
@@ -142,11 +142,10 @@ def main():
 
     # Iterate through images in the sorted order
     for filename in filenames:
-        if filename.endswith('.jpg') or filename.endswith('.png'):
+        if filename.endswith('.png'):
             # Load the image
             image_path = os.path.join(folder_path, filename)
             image = cv2.imread(image_path)
-            print()
 
             # Check if the image was loaded successfully
             if image is None:
@@ -155,67 +154,47 @@ def main():
 
             # Detect ArUco markers in the image
             (corners, marker_ids, _) = cv2.aruco.detectMarkers(image, this_aruco_dictionary, parameters=this_aruco_parameters)
-            # print(corners)
-            aruco_points_3D = np.array([[-10, 10, 0],
-                                        [10, 10, 0],
-                                        [10, -10, 0],
-                                        [-10, -10, 0]]) # coords of the corners in the tag's local frame
-            image_points = np.array(corners)[0].reshape(-1,2) # 2D pixel coords of corners
-
+            
             # Check if markers were detected
             if marker_ids is not None:
                 # Iterate through detected markers
                 for i, marker_id in enumerate(marker_ids):
-                    # Estimate pose for each marker
-                    # rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners[i], aruco_marker_side_length, K_mtx, dist_coeffs)
-                    success, rvecs, tvecs = cv2.solvePnP(aruco_points_3D, image_points, K_mtx, dist_coeffs)
-
+                    image_points = np.array(corners)[i].reshape(-1,2) # 2D pixel coords of corners
+                    success, rvecs, tvecs = cv2.solvePnP(marker_points_3d, image_points, K_mtx, dist_coeffs, flags = cv2.SOLVEPNP_IPPE_SQUARE)
 
                     # Store pose information in camera_poses list
-                    for j in range(len(marker_ids)):
+                    r = cv2.Rodrigues(rvecs)[0]
+                    w2c_cv = np.hstack([r, tvecs.squeeze().reshape(-1,1)])
+                    est_pose = np.eye(4)
+                    est_pose[:3] = w2c_cv
+                    est_pose = np.linalg.inv(est_pose)
+                    est_pose[:, 1] = -est_pose[:,1]
+                    est_pose[:, 2] = -est_pose[:,2]
 
-                        # Storing the position info
-                        # transformation_translation = tvecs[j][0]
+                    transformation_translation = est_pose[:3,3]
+                    rotation_matrix = est_pose[:3,:3]
+                    rot = R.from_matrix(rotation_matrix)
 
-                        # Storing the rotation info
-                        # rotation_matrix = np.eye(4)
-                        # rotation_matrix[0:3, 0:3] = cv2.Rodrigues(np.array(rvecs[j][0]))[0]
-                        # r = R.from_matrix(rotation_matrix[0:3, 0:3])
+                    quat = rot.as_quat() 
 
-                        est_pose = np.eye(4)
-                        r = cv2.Rodrigues(rvecs[j][0])[0]
-                        print('r', r)
-                        w2c_cv = np.hstack([r, tvecs.squeeze().reshape(-1,1)])
+                    # Display the image with axes
+                    # image_with_axes = draw_axes(image.copy(), K_mtx, dist_coeffs, rvecs[j], tvecs[j], corners[0], axis_length=20)
+                    # cv2.imshow('Image with Axes', image_with_axes)
+                    # cv2.waitKey(0)
+                    # cv2.destroyAllWindows()
 
-                        est_pose[:3] = w2c_cv
-                        est_pose = np.linalg.inv(est_pose)
-                        est_pose[:, 1] = -est_pose[:,1]
-                        est_pose[:, 2] = -est_pose[:,2]
-
-                        transformation_translation = est_pose[:3,3]
-                        rotation_matrix = est_pose[:3,:3]
-                        rot = R.from_matrix(rotation_matrix)
-
-                        quat = rot.as_quat() 
-
-                        # Display the image with axes
-                        image_with_axes = draw_axes(image.copy(), K_mtx, dist_coeffs, rvecs[j], tvecs[j], corners[0], axis_length=20)
-                        cv2.imshow('Image with Axes', image_with_axes)
-                        cv2.waitKey(0)
-                        cv2.destroyAllWindows()
-
-                        pose_info = {
-                            'filename': filename,
-                            'marker_id': marker_id,
-                            'translation': transformation_translation,
-                            'rotation': quat
-                        }
-                        camera_poses.append(pose_info)
+                    pose_info = {
+                        'filename': filename,
+                        'marker_id': marker_id,
+                        'translation': transformation_translation,
+                        'rotation': quat
+                    }
+                    camera_poses.append(pose_info)
             else:
                 print("No ArUco markers were found in", filename)
                 blank_id = 203
-                blank_translation = np.array([0, 0, 0])
-                blank_quat = np.array([0, 0, 0, 0])
+                blank_translation = np.array([0.0, 0.0, 0.0])
+                blank_quat = np.array([0.0, 0.0, 0.0, 1.0])
 
                 pose_info = {
                             'filename': filename,
@@ -225,24 +204,33 @@ def main():
                         }
                 camera_poses.append(pose_info)
 
+        else:
+            print('FILE NOT SUPPORTED. ONLY PNG')
 
-    # Print poses
-    print("Camera poses:")
-    for pose in camera_poses:
-        print("Filename:", pose['filename'])
-        print("Marker ID:", pose['marker_id'])
-        print("Translation:", pose['translation'])
-        print("Rotation:", pose['rotation'])
+    ## Print poses
+    # print("Camera poses:")
+    # for pose in camera_poses:
+    #     print("Filename:", pose['filename'])
+    #     print("Marker ID:", pose['marker_id'])
+    #     print("Translation:", pose['translation'])
+    #     print("Rotation:", pose['rotation'])
 
     # Extract translation vectors and quaternions
     translations = np.array([pose['translation'] for pose in camera_poses])
+    translations += marker_orig
     quaternions = np.array([pose['rotation'] for pose in camera_poses])
+
+    traj_path = './traj_gen/trajdata.npy'
+    translations_0, quaternions_0 = load_original_traj(traj_path)
 
     # Plot translation vectors versus image number
     plt.figure(figsize=(10, 6))
-    plt.plot(range(1, len(translations) + 1), translations[:, 0], label='Translation X')
-    plt.plot(range(1, len(translations) + 1), translations[:, 1], label='Translation Y')
-    plt.plot(range(1, len(translations) + 1), translations[:, 2], label='Translation Z')
+    plt.plot(range(1, len(translations) + 1), translations[:, 0], 'r-', label='Translation X')
+    plt.plot(range(1, len(translations) + 1), translations[:, 1], 'g-', label='Translation Y')
+    plt.plot(range(1, len(translations) + 1), translations[:, 2], 'b-', label='Translation Z')
+    plt.plot(range(1, len(translations_0) + 1), translations_0[:, 0], 'r--', label='Original Translation X')
+    plt.plot(range(1, len(translations_0) + 1), translations_0[:, 1], 'g--', label='Original Translation Y')
+    plt.plot(range(1, len(translations_0) + 1), translations_0[:, 2], 'b--', label='Original Translation Z')
     plt.xlabel('Image Number')
     plt.ylabel('Translation')
     plt.title('Translation Vector Over Image Number')
@@ -253,10 +241,14 @@ def main():
 
     # Plot quaternions versus image number
     plt.figure(figsize=(10, 6))
-    plt.plot(range(1, len(quaternions) + 1), quaternions[:, 0], label='Quaternion X')
-    plt.plot(range(1, len(quaternions) + 1), quaternions[:, 1], label='Quaternion Y')
-    plt.plot(range(1, len(quaternions) + 1), quaternions[:, 2], label='Quaternion Z')
-    plt.plot(range(1, len(quaternions) + 1), quaternions[:, 3], label='Quaternion W')
+    plt.plot(range(1, len(quaternions) + 1), quaternions[:, 0], 'r-', label='Quaternion X')
+    plt.plot(range(1, len(quaternions) + 1), quaternions[:, 1], 'g-', label='Quaternion Y')
+    plt.plot(range(1, len(quaternions) + 1), quaternions[:, 2], 'b-', label='Quaternion Z')
+    plt.plot(range(1, len(quaternions) + 1), quaternions[:, 3], 'k-', label='Quaternion W')
+    plt.plot(range(1, len(quaternions_0) + 1), quaternions_0[:, 1], 'r--', label='Quaternion X')
+    plt.plot(range(1, len(quaternions_0) + 1), quaternions_0[:, 2], 'g--', label='Quaternion Y')
+    plt.plot(range(1, len(quaternions_0) + 1), quaternions_0[:, 3], 'b--', label='Quaternion Z')
+    plt.plot(range(1, len(quaternions_0) + 1), quaternions_0[:, 0], 'k--', label='Quaternion W')
     plt.xlabel('Image Number')
     plt.ylabel('Quaternion')
     plt.title('Quaternion Components Over Image Number')

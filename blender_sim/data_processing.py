@@ -38,21 +38,14 @@ class Agent():
         # Write a transform file and receive an image from Blender
         # Modify data dictionary to update pose
         self.data['pose'] = pose.tolist()
-
-        # img, depth = self.get_data(self.data)
         self.get_data(self.data)
-        # self.img = img
-        # self.depth = depth
         self.iter += 1
-
-        # return img, depth
         return True
     
     def get_data(self, data):
         pose_path = self.path + f"\\{self.iter}.json"
         img_path = self.path + f"\\{self.iter}.png"
         depth_path = self.path + f"\\d_{self.iter}"
-        depth_output_file_path = depth_path + f'0001.png'
 
         try: 
             with open(pose_path,"w+") as f:
@@ -64,24 +57,6 @@ class Agent():
         # Run the capture image script in headless blender
         blender_path = "C:\\Program Files\\Blender Foundation\\Blender 4.1\\blender.exe"
         subprocess.run([blender_path, '-b', self.blend, '-P', self.blend_script, '--', pose_path, img_path, depth_path])
-        # try: 
-        #     img = imageio.imread(img_path)
-        # except Exception as err:
-        #     print(f"Unexpected {err}, {type(err)}")
-        #     raise
-        
-        # try: 
-        #     with open(depth_output_file_path, 'rb') as f:
-        #         rgb = imageio.imread(depth_output_file_path)
-        # except Exception as err:
-        #     print(f"Unexpected {err}, {type(err)}")
-        #     raise
-
-        # depth = (rgb[..., -1]/255.)
-        # depth[depth >= 1.] = 0.
-        # depth *= self.far_plane
-        
-        # return img, depth
         return True
 
 
@@ -145,18 +120,7 @@ class LandingSim():
             camera_view[:3, 3] = position
 
             # Getting the image and depth
-            # img, depth = self.agent.state2image(camera_view)
             self.agent.state2image(camera_view)
-            
-            # # Process the image
-            # # If alpha = 0, make color black
-            # img = img/255
-            # alpha = np.ma.make_mask(img[..., -1])
-            # img = img[..., :3].astype(np.float32)
-            # img[~alpha] = 0.
-            # img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR) 
-            # img = (img*255).astype(np.uint8)
-
 
         return True
 
