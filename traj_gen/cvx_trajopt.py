@@ -7,12 +7,13 @@ import cvxpy as cp
 import json 
 
 # %%
-h = 0.5 # deltaT
+h = 0.1 # deltaT
+tf = 8
 g = 9.807
 # m = 10.
 Fmax = 854e3
 Fmin = 0
-p0 = np.array([50,50,100]) #np.matrix('50 ;50; 100')
+p0 = np.array([50,50,120]) #np.matrix('50 ;50; 100')
 v0 = np.array([-10,0,-10])  #np.matrix('-10; 0; -10')
 # v0 = np.array([-2,-5,-120])
 gamma_gs = 0.5 # glide slope angle
@@ -24,7 +25,8 @@ alpha = 1/(Isp*g) # fuel usage coefficient
 mdry = 22.2e3 # dry mass in kg
 mwet = mdry + 20e3 # wet mass in kg
 
-K = 15
+K = int(tf/h)
+print(K)
 
 z0 = np.array([np.log(mwet - alpha*Fmax*h*i) for i in range(K+1)])
 z1 = np.array([np.log(mwet - alpha*Fmin*h*i) for i in range(K+1)])
