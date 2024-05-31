@@ -68,8 +68,7 @@ def load_original_traj(traj_path):
     pos_and_vel = (traj_dict['pos']).T
     positions = pos_and_vel[:, 0:3]
     attitudes_and_rates = (traj_dict['qw_camera']).T
-    attitudes = attitudes_and_rates[:,0:4]
-    return positions, attitudes
+    return positions, attitudes_and_rates, timesteps
 
 def draw_axes(image, K_mtx, dist_coeffs, rvec, tvec, corners, axis_length):
     # Project axes points
@@ -207,12 +206,12 @@ class VisualOdometry():
                 print('FILE NOT SUPPORTED. ONLY PNG')
 
         ## Print poses
-        # print("Camera poses:")
-        # for pose in camera_poses:
-        #     print("Filename:", pose['filename'])
-        #     print("Marker ID:", pose['marker_id'])
-        #     print("Translation:", pose['translation'])
-        #     print("Rotation:", pose['rotation'])
+        print("Camera poses:")
+        for pose in camera_poses:
+            print("Filename:", pose['filename'])
+            print("Marker ID:", pose['marker_id'])
+            print("Translation:", pose['translation'])
+            print("Rotation:", pose['rotation'])
 
         # Extract translation vectors and quaternions
         translations = np.array([pose['translation'] for pose in camera_poses])

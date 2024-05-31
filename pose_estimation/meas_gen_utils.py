@@ -45,6 +45,17 @@ def cam_estimate_to_meas(qmeas, qnom, Rc):
     return yp
 
 def gen_full_meas(q_hist, w_hist, q_cam, Rw, Rp, Rc):
+    """
+    inputs:
+        q_hist: n x 4 numpy array of quaternions (WARNING; original trajectory has n+1 states, chopping off the first one)
+        w_hist: n x 3 numpy array of angular velocities
+        q_cam: n x 4 numpy array of camera quaternion estimates
+        Rw: 3 x 3 numpy array of angular velocity measurement covariance
+        Rp: 3 x 3 numpy array of pose measurement covariance
+        Rc: 3 x 3 numpy array of camera quaternion measurement covariance
+    outputs:
+        z: n x 9 numpy array of measurements
+    """
 
     y1 = cam_estimate_to_meas(q_cam, q_hist, Rc)
     y2 = attitude_meas_IMU(q_hist, Rp)
