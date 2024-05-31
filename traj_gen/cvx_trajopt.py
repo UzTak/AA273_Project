@@ -6,6 +6,18 @@ from matplotlib import cm
 import cvxpy as cp 
 import json 
 
+
+def q_conj(q):
+    return np.array([q[0], -q[1], -q[2], -q[3]])
+
+def q_mul(q0, q1):
+    return np.array([
+        q0[0]*q1[0] - q0[1]*q1[1] - q0[2]*q1[2] - q0[3]*q1[3],
+        q0[0]*q1[1] + q0[1]*q1[0] + q0[2]*q1[3] - q0[3]*q1[2],
+        q0[0]*q1[2] - q0[1]*q1[3] + q0[2]*q1[0] + q0[3]*q1[1],
+        q0[0]*q1[3] + q0[1]*q1[2] - q0[2]*q1[1] + q0[3]*q1[0]
+    ])    
+
 # %%
 h = 0.1 # deltaT
 tf = 8
@@ -240,6 +252,40 @@ def plot_attitude_track(ax, rtn, qw, coneAngle, height=20):
             
             ax.plot_surface(coneXRotated, coneYRotated, coneZRotated, color='red', alpha=0.05, linewidth=0, antialiased=False)
 
+
+def whist_to_dw_hist(w, J, dt):
+    """
+    Generating the control history (delta-w) from angular velocity history  
+    Args:
+        w  : angular velocity history (3 x n_time)
+        J  : moment of inertia matrix (3 x 3)
+        dt : time step
+    Return:
+        dw : control history (3 x n_time-1)
+    """
+    
+    dw = np.zeros((3, w.shape[1]))
+    for i in range(w.shape[1]-1):
+        dw[:, i] = (w[:, i+1] - w[:, i] - dt*np.linalg.inv(J)@(np.cross(w[:,i], np.dot(J, w[:,i])))) / dt
+    
+    dw[:, -1] = dw[:, -2]  # or maybe zero?
+    
+    return dw 
+
+
+def compute_dq(qhist1, qhist2):
+    """
+    Computing the relative quaternion of 1 w.r.t. 2
+    """
+    n_time = min(qhist1.shape[1], qhist2.shape[1])
+    dq = np.zeros((4, n_time))
+    for i in range(n_time):
+        q1 = qhist1[:4, i]
+        q2 = qhist2[:4, i]
+        dq[:,i] = q_mul(q_conj(q2), q1)
+    
+    return 
+
 # %%
 theta = np.pi/6
 ax = plt.figure().add_subplot(projection='3d')
@@ -253,13 +299,21 @@ ax.set_ylabel("y")
 plt.show()
 
 # %%
+dt = t[1] - t[0]   
+J = np.diag([3e6, 3e6, 5e4])   # FIXME; what is this? 
 state = np.vstack([xyz, v.value])
+dw_thrust = whist_to_dw_hist(dw, J, dt)  
+
+dq_camera2rocket = compute_dq(qw, qw_thrust)    
 
 data = {
+    "J" : J,
     "t" : t, 
     "pos" : state,
     "qw_camera": qw,
-    "qw_rocket": qw_thrust
+    "qw_rocket": qw_thrust,
+    "dw_rocket": dw_thrust,
+    "dq_camera2rocket": dq_camera2rocket
 }
 
 np.save("traj_gen/trajdata.npy", data)
