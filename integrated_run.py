@@ -1,16 +1,16 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
 from blender_sim.data_processing import ImageGenerator
 from pose_estimation.filter import MEKF
 from pose_estimation.meas_gen_utils import *
 from pose_estimation.visual_odometry import VisualOdometry, load_original_traj
-import numpy as np
+from pose_estimation.dynamics.plot_misc import *
 
 if __name__ == "__main__":
     # Load original traj
     traj_path = 'traj_gen/trajdata.npy'
     p_xyz, qw_c, qw_r, dq_c2r, uhist, t, J = load_original_traj(traj_path)
-    print('p_xyz.shape = ', p_xyz.shape)
-    print('qw_c.shape = ', qw_c.shape)
-    print('qw_r.shape = ', qw_r.shape)
 
     n = len(p_xyz)
 
@@ -23,8 +23,6 @@ if __name__ == "__main__":
     K_mtx = np.array([[424.3378, 0., 424.], [0., 424.3378, 240.], [0., 0., 1.]])
     dist_coeffs = np.zeros((4, 1))
     vision = VisualOdometry(marker_side_len, marker_orig, dist_coeffs, K_mtx)
-    
-    J = np.diag([])  # FIXME:moment of inertia 
     dt = t[1] - t[0]          
     
     # Set up MEKF
@@ -62,12 +60,21 @@ if __name__ == "__main__":
     print('arg2.shape = ', qw_r[1:,4:].shape)
     print('arg3.shape = ', q_camera.shape)
     yhist = gen_full_meas(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], Rw, Rp, Rc)
+    uhist = uhist.T
 
+    
     # for i in range(n):
     for t_index, (u, y) in enumerate(zip(uhist, yhist)):
-        
+        print("u = ", u)
+        print("y = ", y)
+        print("J = ", J)
         # run MEKF 
         x_est_mekf, P_est_mekf = mekf.step(u, y, J)
-        
+        xest_hist[t_index+1], Pest_hist[t_index+1] = x_est_mekf, P_est_mekf
+        print("timestep: ", t_index)
 
+    fig = plt.figure(figsize=(12,8))
+    fig = plot_sol_qw2(fig, np.transpose(qw_r), None, t, qw_ref=None, c="g")
+    fig = plot_sol_qw2(fig, np.transpose(xest_hist), None, t, qw_ref=None, c="b")
 
+    plt.show()

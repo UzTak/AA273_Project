@@ -56,6 +56,8 @@ class MEKF(Filter):
 
         # nonlinear quat prop
         qw = np.concatenate([self.qref, self.mu[3:]])
+        print("q = ", self.qref)
+        print("w = ", self.mu[3:])
         qw = odeint(ode_qw, qw, [0,self.dt], args=(I, np.zeros((3,1))))[1]
         q_tplus_t = qw[:4]
 
