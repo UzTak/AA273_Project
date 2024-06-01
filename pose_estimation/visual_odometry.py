@@ -219,7 +219,7 @@ class VisualOdometry():
         quaternions = np.array([pose['rotation'] for pose in camera_poses])
 
         traj_path = './traj_gen/trajdata.npy'
-        translations_0, quaternions_0 = load_original_traj(traj_path)
+        translations_0, quaternions_0, _ = load_original_traj(traj_path)
 
         # Plot translation vectors versus image number
         plt.figure(figsize=(10, 6))

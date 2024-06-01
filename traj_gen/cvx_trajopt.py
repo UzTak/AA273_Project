@@ -21,6 +21,8 @@ def q_mul(q0, q1):
 # %%
 h = 0.1 # deltaT
 tf = 8
+K = int(tf/h)
+print(K)
 g = 9.807
 # m = 10.
 Fmax = 854e3
@@ -29,16 +31,13 @@ p0 = np.array([50,50,120]) #np.matrix('50 ;50; 100')
 v0 = np.array([-10,0,-10])  #np.matrix('-10; 0; -10')
 # v0 = np.array([-2,-5,-120])
 gamma_gs = 0.5 # glide slope angle
-gamma_p = np.pi/4
+gamma_p = np.linspace(np.pi/3, 0.001, K)
 
 Isp = 282
 alpha = 1/(Isp*g) # fuel usage coefficient
 
 mdry = 22.2e3 # dry mass in kg
 mwet = mdry + 20e3 # wet mass in kg
-
-K = int(tf/h)
-print(K)
 
 z0 = np.array([np.log(mwet - alpha*Fmax*h*i) for i in range(K+1)])
 z1 = np.array([np.log(mwet - alpha*Fmin*h*i) for i in range(K+1)])
@@ -85,7 +84,7 @@ con += [z[i] <= z1[i] for i in range(K+1)]
 
 # pointing constraint
 con += [cp.norm(u[:,i]) <= xi[i] for i in range(K)]
-con += [u[2,i] >= xi[i]*np.cos(gamma_p) for i in range(K)]
+con += [u[2,i] >= xi[i]*np.cos(gamma_p[i]) for i in range(K)]
 
 # spacecraft mass limits
 con += [cp.log(mdry) <= z[-1]]
