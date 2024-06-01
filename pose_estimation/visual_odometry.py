@@ -67,8 +67,12 @@ def load_original_traj(traj_path):
     n = len(timesteps)
     pos_and_vel = (traj_dict['pos']).T
     positions = pos_and_vel[:, 0:3]
-    attitudes_and_rates = (traj_dict['qw_camera']).T
-    return positions, attitudes_and_rates, timesteps
+    cam_attitudes_and_rates = (traj_dict['qw_camera']).T
+    rocket_attitudes_and_rates = (traj_dict['qw_rocket']).T
+    I = traj_dict['J']
+    u_moment = traj_dict['dw_rocket']
+    cam_to_rocket = traj_dict['dq_camera2rocket']
+    return positions, cam_attitudes_and_rates, rocket_attitudes_and_rates, cam_to_rocket, u_moment, timesteps, I
 
 def draw_axes(image, K_mtx, dist_coeffs, rvec, tvec, corners, axis_length):
     # Project axes points
@@ -219,7 +223,8 @@ class VisualOdometry():
         quaternions = np.array([pose['rotation'] for pose in camera_poses])
 
         traj_path = './traj_gen/trajdata.npy'
-        translations_0, quaternions_0, _ = load_original_traj(traj_path)
+        load_traj_output = load_original_traj(traj_path)
+        translations_0, quaternions_0 = load_traj_output[:2]
 
         # Plot translation vectors versus image number
         plt.figure(figsize=(10, 6))

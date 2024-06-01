@@ -3,7 +3,7 @@ import scipy as sp
 # import control
 from scipy.integrate import odeint 
 
-from dynamics.dynamics_rot import *
+from pose_estimation.dynamics.dynamics_rot import *
 
 def ssDef(x, dt):
     A = None

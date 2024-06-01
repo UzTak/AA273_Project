@@ -6,8 +6,9 @@ import numpy as np
 
 if __name__ == "__main__":
     # Load original traj
-    traj_path = ...
+    traj_path = 'traj_gen/trajdata.npy'
     true_positions, true_attitudes_and_rates, t = load_original_traj(traj_path)
+    # p_xyz, qw_c, qw_r, dq_c2r, uhist, t, J = load_original_traj(traj_path)
 
     n = len(true_positions)
 
