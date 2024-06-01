@@ -1,6 +1,6 @@
 import numpy as np
 import scipy as sp
-from dynamics.dynamics_rot import *
+from pose_estimation.dynamics.dynamics_rot import *
 
 def quat_to_mrp(q):
     # scalar first quat to mrp

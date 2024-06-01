@@ -8,6 +8,8 @@ import imageio
 import subprocess
 # from scipy.spatial.transform import Rotation, Slerp
 import cv2
+import bpy
+import os
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -43,9 +45,9 @@ class Agent():
         return True
     
     def get_data(self, data):
-        pose_path = self.path + f"\\{self.iter}.json"
-        img_path = self.path + f"\\{self.iter}.png"
-        depth_path = self.path + f"\\d_{self.iter}"
+        pose_path = self.path + f"/{self.iter}.json"
+        img_path = self.path + f"/{self.iter}.png"
+        # depth_path = self.path + f"/d_{self.iter}"
 
         try: 
             with open(pose_path,"w+") as f:
@@ -55,8 +57,16 @@ class Agent():
             raise
 
         # Run the capture image script in headless blender
-        blender_path = "C:\\Program Files\\Blender Foundation\\Blender 4.1\\blender.exe"
-        subprocess.run([blender_path, '-b', self.blend, '-P', self.blend_script, '--', pose_path, img_path, depth_path])
+        blender_path = None
+        blender_path_candidates = ["C:/Program Files/Blender Foundation/Blender 4.1/blender.exe", '/Applications/Blender.app/Contents/MacOS/Blender']
+        for path in blender_path_candidates:
+            if os.path.isfile(path):
+                blender_path = path
+        
+        if blender_path == None:
+            raise Exception("No blender path found")
+        
+        subprocess.run([blender_path, '-b', self.blend, '-P', self.blend_script, '--', pose_path, img_path, ''])
         return True
 
 
@@ -158,5 +168,5 @@ class ImageGenerator():
 
 
 if __name__ == "__main__":
-    sim = LandingSim('../traj_gen/trajdata.npy', "C:\\Users\\anshu\\OneDrive - Stanford\\Documents\\Class Materials\\Spring 2024\\AA273_Project\\blender_sim\\blender_code.py", "C:\\Users\\anshu\\OneDrive - Stanford\\Documents\\Class Materials\\Spring 2024\\AA273_Project\\blender_sim\\rocket_pad.blend")
+    sim = LandingSim('../traj_gen/trajdata.npy', "blender_code.py", "rocket_pad.blend")
     sim.run_through_traj()
