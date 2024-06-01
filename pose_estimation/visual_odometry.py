@@ -122,6 +122,7 @@ class VisualOdometry():
         # Define intrinsic parameters
         self.dist_coeffs = dist_coeffs  # Distortion coefficients (if applicable)
         self.K_mtx = K_mtx
+        self.marker_orig = marker_orig
 
     def get_pose(self, image_folder_path):
         """
@@ -219,7 +220,7 @@ class VisualOdometry():
 
         # Extract translation vectors and quaternions
         translations = np.array([pose['translation'] for pose in camera_poses])
-        translations += marker_orig
+        translations += self.marker_orig
         quaternions = np.array([pose['rotation'] for pose in camera_poses])
 
         traj_path = './traj_gen/trajdata.npy'
@@ -259,6 +260,8 @@ class VisualOdometry():
         plt.legend()
         plt.grid(True)
         plt.show()
+
+        return camera_poses
 
 if __name__ == '__main__':
     print(__doc__)

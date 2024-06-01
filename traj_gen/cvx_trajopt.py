@@ -197,6 +197,8 @@ t =  np.arange(np.shape(xyz)[1])
 # %%
 qw, dw = track_target(xyz, t)
 qw_thrust, _ = track_target(unorm, t[:-1])
+qw_end = np.concatenate((qw_thrust[:4,-1], np.zeros((3,))))
+qw_thrust = np.concatenate((qw_thrust, qw_end[:,np.newaxis]), axis=1)
 
 # %%
 def q2rotmat(q):
