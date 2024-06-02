@@ -56,7 +56,8 @@ if __name__ == "__main__":
     
     q_camera = np.zeros((n_cam, 4))
     for i in range(len(camera_data)):
-        q_camera[i] = camera_data[i]["rotation"]    
+        q_camera[i] = camera_data[i]["rotation"]
+        # print(q_camera[i])
     
     # meas (y) = [dp_camera, dp_IMU, w_IMU]
     Rw = np.diag((1e-4)*np.ones(3,)) # actual IMU velocity measurement noise
@@ -71,9 +72,9 @@ if __name__ == "__main__":
     
     # for i in range(n):
     for t_index, (u, y) in enumerate(zip(uhist, yhist)):
-        print("u = ", u)
-        print("y = ", y)
-        print("J = ", J)
+        # print("u = ", u)
+        print("y_cam = ", y[:3])
+        # print("J = ", J)
         # run MEKF 
         x_est_mekf, P_est_mekf = mekf.step(u, y, J)
         xest_hist[t_index+1], Pest_hist[t_index+1] = x_est_mekf, P_est_mekf

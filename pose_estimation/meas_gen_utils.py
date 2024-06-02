@@ -24,23 +24,24 @@ def attitude_meas_IMU(qnom, Rp):
 
     return yp
 
-def cam_estimate_to_meas(q_cam_meas, q_cam2roc, qnom, Rc):
+def cam_estimate_to_meas(q_cam_meas, dq_cam2roc, qnom, Rc):
     ### takes in quaternion camera esimate history, quaternion state history, and generates noisy attitude measurements ###
 
     T, n = q_cam_meas.shape
     v_noise = sp.linalg.sqrtm(Rc) @ np.random.normal(size = [3, T])
-    q_roc_meas = np.zeros_like(q_cam_meas)
+    q_roc_meas_conj = np.zeros_like(q_cam_meas)
     for i in range(T):
-        q_roc_meas[i] = q_mul(q_cam2roc[i], q_cam_meas[i])
-    qconj = q_roc_meas
-    qconj[:,1:] *= -1
+        q_roc_meas_conj[i] = q_conj(q_mul(dq_cam2roc[i], q_cam_meas[i]))
     yp = np.zeros((T,3))
 
-    for i, (qconj, q) in enumerate(zip(qconj, qnom)):
-        if np.all(qconj == 0):
+    for i, (qconj, q) in enumerate(zip(q_roc_meas_conj, qnom)):
+        # print(i)
+        if np.all(q_cam_meas[i] == 0):
             yp[i,:] = np.full(3, np.nan)
+            print("assigend faulty meas")
         else:
             dq = q_mul(q, qconj)
+            # print('dq_meas = ', dq)
             yp[i,:] = quat_to_mrp(dq)
 
     yp += v_noise.T
