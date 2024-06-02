@@ -54,10 +54,13 @@ if __name__ == "__main__":
     camera_data = vision.get_pose(folder_path)
     n_cam = len(camera_data)
     
+    q_temp = np.zeros((n_cam, 4))
     q_camera = np.zeros((n_cam, 4))
     for i in range(len(camera_data)):
-        q_camera[i] = camera_data[i]["rotation"]
-        # print(q_camera[i])
+        q_temp[i] = camera_data[i]["rotation"]
+
+    q_camera[:,0] = q_temp[:,3]
+    q_camera[:,1:] = q_temp[:,:3]
     
     # meas (y) = [dp_camera, dp_IMU, w_IMU]
     Rw = np.diag((1e-4)*np.ones(3,)) # actual IMU velocity measurement noise

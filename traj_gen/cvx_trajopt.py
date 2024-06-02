@@ -300,7 +300,7 @@ ax.set_ylabel("y")
 plt.show()
 
 # %%
-dt = t[1] - t[0]   
+dt = h
 J = np.diag([3e6, 3e6, 5e4])   # FIXME; what is this? 
 state = np.vstack([xyz, v.value])
 dw_thrust = whist_to_dw_hist(dw, J, dt)  
