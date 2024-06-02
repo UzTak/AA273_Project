@@ -191,14 +191,16 @@ def track_target(r_rtn, t, x_d=np.array([0, 0, -1]), r_target=np.zeros((3,1))):
 xyz = np.array(p.value[0:3, :])
 rv = np.array(p.value)
 
-t =  np.arange(np.shape(xyz)[1])
+t =  np.arange(np.shape(xyz)[1])/tf
+print(t)
 # print(t.shape)
 
 # %%
 qw, dw = track_target(xyz, t)
-qw_thrust, _ = track_target(unorm, t[:-1])
-qw_end = qw_thrust[:,-1]
-qw_thrust = np.concatenate((qw_thrust, qw_end[:,np.newaxis]), axis=1)
+unorm_ext = np.concatenate((unorm, unorm[:,-1].reshape((3,1))), axis=1)
+qw_thrust, dw_r = track_target(unorm_ext, t)
+# qw_end = qw_thrust[:,-1]
+# qw_thrust = np.concatenate((qw_thrust, qw_end[:,np.newaxis]), axis=1)
 # print(qw_thrust[:, -2:])
 
 # %%
@@ -304,7 +306,7 @@ plt.show()
 dt = h
 J = np.diag([3e6, 3e6, 5e4])   # FIXME; what is this? 
 state = np.vstack([xyz, v.value])
-dw_thrust = whist_to_dw_hist(dw, J, dt)  
+dw_thrust = whist_to_dw_hist(dw_r, J, dt)  
 
 # print('qw.shape = ', qw.shape)
 # print('qw_thrust.shape = ', qw_thrust.shape)
