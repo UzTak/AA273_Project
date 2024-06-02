@@ -337,7 +337,8 @@ def mekf_stm(pw,J,dt):
     Phi = np.block([[-expm(-dt/2*skw(pw[3:])), Φ12], 
                     [np.zeros((3,3)), np.eye(3)]])
     
-    B = np.block([[-1/2*skw(pw[3:])], [np.zeros((3,3))]])
+    # B = np.block([[-1/2*skw(pw[3:])], [np.zeros((3,3))]])
+    B = np.block([[np.zeros((3,3))], [np.eye(3)]])
     C = np.block([[np.eye(3), np.zeros((3,3))], 
                   [np.eye(3), np.zeros((3,3))],
                   [np.zeros((3,3)), np.eye(3)]])
