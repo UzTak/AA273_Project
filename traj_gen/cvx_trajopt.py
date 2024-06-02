@@ -197,8 +197,9 @@ t =  np.arange(np.shape(xyz)[1])
 # %%
 qw, dw = track_target(xyz, t)
 qw_thrust, _ = track_target(unorm, t[:-1])
-qw_end = np.concatenate((qw_thrust[:4,-1], np.zeros((3,))))
+qw_end = qw_thrust[:,-1]
 qw_thrust = np.concatenate((qw_thrust, qw_end[:,np.newaxis]), axis=1)
+# print(qw_thrust[:, -2:])
 
 # %%
 def q2rotmat(q):
@@ -265,11 +266,11 @@ def whist_to_dw_hist(w, J, dt):
         dw : control history (3 x n_time-1)
     """
     
-    dw = np.zeros((3, w.shape[1]))
+    dw = np.zeros((3, w.shape[1]-1))
     for i in range(w.shape[1]-1):
-        dw[:, i] = (w[:, i+1] - w[:, i] - dt*np.linalg.inv(J)@(np.cross(w[:,i], np.dot(J, w[:,i])))) / dt
+        dw[:, i] = (w[:, i+1] - w[:, i] - dt*np.linalg.inv(J)@(np.cross(w[:,i], np.dot(J, w[:,i]))))
     
-    dw[:, -1] = dw[:, -2]  # or maybe zero?
+    # dw[:, -1] = dw[:, -2]  # or maybe zero?
     
     return dw 
 
