@@ -11,12 +11,12 @@ if __name__ == "__main__":
     # Load original traj
     traj_path = 'traj_gen/trajdata.npy'
     p_xyz, qw_c, qw_r, dq_c2r, uhist, t, J = load_original_traj(traj_path)
-    # print(p_xyz.shape)
-    # print(qw_c.shape)
-    # print(qw_r.shape)
-    # print(dq_c2r.shape)
-    # print(uhist.shape)
-    # print(t.shape)
+    print(p_xyz.shape)
+    print(qw_c.shape)
+    print(qw_r.shape)
+    print(dq_c2r.shape)
+    print(uhist.shape)
+    print(t.shape)
 
     n = len(p_xyz)
 
