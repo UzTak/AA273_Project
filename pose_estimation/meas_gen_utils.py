@@ -38,7 +38,7 @@ def cam_estimate_to_meas(q_cam_meas, dq_cam2roc, qnom, Rc):
         # print(i)
         if np.all(q_cam_meas[i] == 0):
             yp[i,:] = np.full(3, np.nan)
-            print("assigend faulty meas")
+            # print("assigned faulty meas")
         else:
             dq = q_mul(q, qconj)
             # print('dq_meas = ', dq)

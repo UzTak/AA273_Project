@@ -283,7 +283,7 @@ def compute_dq(qhist1, qhist2):
     for i in range(n_time):
         q1 = qhist1[:4, i]
         q2 = qhist2[:4, i]
-        dq[:,i] = q_mul(q1, q_conj(q2))
+        dq[:,i] = q_mul(q2, q_conj(q1))
     
     return dq
 
