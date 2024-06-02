@@ -121,8 +121,8 @@ ax.quiver(p.value[0,:-1],p.value[1,:-1],p.value[2,:-1],
          fdir[0,:], fdir[1,:], fdir[2,:], zorder=5, color="black")
 
 ax.set_xlabel("x"); ax.set_ylabel("y"); ax.set_zlabel("z")
-# ax.axis('equal')
-plt.show()
+# ax.axis('equal') 
+# plt.show()
 
 # %%
 
@@ -255,7 +255,7 @@ def plot_attitude_track(ax, rtn, qw, coneAngle, height=20):
             coneYRotated = coneVertices[1, :].reshape(coneY.shape)
             coneZRotated = coneVertices[2, :].reshape(coneZ.shape)
             
-            ax.plot_surface(coneXRotated, coneYRotated, coneZRotated, color='red', alpha=0.05, linewidth=0, antialiased=False)
+            ax.plot_surface(coneXRotated, coneYRotated, coneZRotated, color='blue', alpha=0.2, linewidth=0, antialiased=False)
 
 
 def whist_to_dw_hist(w, J, dt):
@@ -294,13 +294,14 @@ def compute_dq(qhist1, qhist2):
 # %%
 theta = np.pi/18
 ax = plt.figure().add_subplot(projection='3d')
-plot_attitude_track(ax, xyz, qw, theta, height=20)
+plot_attitude_track(ax, xyz, qw, theta, height=15)
 ax.quiver(p.value[0,:-1],p.value[1,:-1],p.value[2,:-1], 
-         unorm[0], unorm[1], unorm[2], length=10, color="black")
-
-# ax.axis("equal")
+         unorm[0], unorm[1], unorm[2], length=10, linewidth=1, color="purple")
+ax.plot(xs=p.value[0,:],ys=p.value[1,:],zs=p.value[2,:], c='k', lw=2, zorder = 5)
+ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.autumn, linewidth=0.1, alpha = 0.5, edgecolors="k")
 ax.set_xlabel("x")
 ax.set_ylabel("y")
+ax.set_box_aspect([1,1,1])
 plt.show()
 
 # %%
