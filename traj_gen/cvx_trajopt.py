@@ -192,7 +192,7 @@ def track_target(r_rtn, t, x_d=np.array([0, 0, -1]), r_target=np.zeros((3,1))):
 xyz = np.array(p.value[0:3, :])
 rv = np.array(p.value)
 
-t =  np.arange(np.shape(xyz)[1])/tf
+t =  np.arange(np.shape(xyz)[1])*h
 print(t)
 # print(t.shape)
 
@@ -307,7 +307,7 @@ plt.show()
 dt = h
 J = np.diag([3e6, 3e6, 5e4])   # FIXME; what is this? 
 state = np.vstack([xyz, v.value])
-dw_thrust = whist_to_dw_hist(dw_r, J, dt)  
+dw_thrust = whist_to_dw_hist(qw_thrust[4:, :], J, dt)  
 
 # print('qw.shape = ', qw.shape)
 # print('qw_thrust.shape = ', qw_thrust.shape)
