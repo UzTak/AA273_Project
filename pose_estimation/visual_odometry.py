@@ -239,6 +239,10 @@ class VisualOdometry():
         plt.plot(range(1, len(translations_0) + 1), translations_0[:, 0], 'r--', label='Original Translation X')
         plt.plot(range(1, len(translations_0) + 1), translations_0[:, 1], 'g--', label='Original Translation Y')
         plt.plot(range(1, len(translations_0) + 1), translations_0[:, 2], 'b--', label='Original Translation Z')
+        # Add circles at each data point
+        plt.scatter(range(1, len(translations) + 1), translations[:, 0], color='r', s=5)
+        plt.scatter(range(1, len(translations) + 1), translations[:, 1], color='g', s=5)
+        plt.scatter(range(1, len(translations) + 1), translations[:, 2], color='b', s=5)
         plt.xlabel('Image Number')
         plt.ylabel('Translation')
         plt.title('Translation Vector Over Image Number')
