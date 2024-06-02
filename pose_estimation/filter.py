@@ -89,7 +89,7 @@ class MEKF(Filter):
 
         qw = np.concatenate([self.qref, self.mu[3:]])
 
-        return qw, self.Sig
+        return mu_tplus_tplus, qw, self.Sig
     
     def quatReset(self, mu_post, q_update):
         # slice MRP from posterior mean
