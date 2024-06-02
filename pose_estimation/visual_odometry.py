@@ -180,8 +180,8 @@ class VisualOdometry():
 
                         quat = rot.as_quat() 
 
-                        # Display the image with axes
-                        # image_with_axes = draw_axes(image.copy(), K_mtx, dist_coeffs, rvecs[j], tvecs[j], corners[0], axis_length=20)
+                        # #Display the image with axes
+                        # image_with_axes = draw_axes(image.copy(), self.K_mtx, self.dist_coeffs, rvecs, tvecs, corners[0], axis_length=20)
                         # cv2.imshow('Image with Axes', image_with_axes)
                         # cv2.waitKey(0)
                         # cv2.destroyAllWindows()
@@ -220,51 +220,58 @@ class VisualOdometry():
 
         # Extract translation vectors and quaternions
         translations = np.array([pose['translation'] for pose in camera_poses])
-        translations = np.where(translations == 0, np.nan, translations) # set non-detected params to NaN (no show on plot)
-        translations += self.marker_orig
         quaternions = np.array([pose['rotation'] for pose in camera_poses])
-        quaternions = np.where(quaternions == 0, np.nan, quaternions) # set non-detected params to NaN (no show on plot)
+
+        # Find indices of non-zero elements
+        nonzero_indices = np.where(np.all(translations != 0, axis=1))[0]
+
+        # Filter x and y arrays to keep only non-zero elements
+        translations_nonzero = translations[nonzero_indices]
+        quaternions_nonzero = quaternions[nonzero_indices]
+        
+        # Add marker origin to the translations
+        translations_nonzero += self.marker_orig
 
         traj_path = './traj_gen/trajdata.npy'
         load_traj_output = load_original_traj(traj_path)
-        translations_0, quaternions_0 = load_traj_output[:2]
+        translations_orig, quaternions_orig = load_traj_output[:2]
 
         
 
         # Plot translation vectors versus image number
         plt.figure(figsize=(10, 6))
-        plt.plot(range(1, len(translations) + 1), translations[:, 0], 'r-', label='Translation X')
-        plt.plot(range(1, len(translations) + 1), translations[:, 1], 'g-', label='Translation Y')
-        plt.plot(range(1, len(translations) + 1), translations[:, 2], 'b-', label='Translation Z')
-        plt.plot(range(1, len(translations_0) + 1), translations_0[:, 0], 'r--', label='Original Translation X')
-        plt.plot(range(1, len(translations_0) + 1), translations_0[:, 1], 'g--', label='Original Translation Y')
-        plt.plot(range(1, len(translations_0) + 1), translations_0[:, 2], 'b--', label='Original Translation Z')
+        plt.plot(nonzero_indices, translations_nonzero[:, 0], 'r-', label='X est')
+        plt.plot(nonzero_indices, translations_nonzero[:, 1], 'g-', label='Y est')
+        plt.plot(nonzero_indices, translations_nonzero[:, 2], 'b-', label='Z est')
+        plt.plot(range(1, len(translations_orig) + 1), translations_orig[:, 0], 'r--', label='X GT')
+        plt.plot(range(1, len(translations_orig) + 1), translations_orig[:, 1], 'g--', label='Y GT')
+        plt.plot(range(1, len(translations_orig) + 1), translations_orig[:, 2], 'b--', label='Z GT')
         # Add circles at each data point
-        plt.scatter(range(1, len(translations) + 1), translations[:, 0], color='r', s=5)
-        plt.scatter(range(1, len(translations) + 1), translations[:, 1], color='g', s=5)
-        plt.scatter(range(1, len(translations) + 1), translations[:, 2], color='b', s=5)
+        plt.scatter(nonzero_indices, translations_nonzero[:, 0], color='r', s=8)
+        plt.scatter(nonzero_indices, translations_nonzero[:, 1], color='g', s=8)
+        plt.scatter(nonzero_indices, translations_nonzero[:, 2], color='b', s=8)
         plt.xlabel('Image Number')
         plt.ylabel('Translation')
         plt.title('Translation Vector Over Image Number')
-        plt.xticks(range(1, len(translations) + 1))  # Set x-axis ticks from 1 to the length of translations
+        plt.xticks(np.arange(0, len(translations) + 1, 5))  
         plt.legend()
         plt.grid(True)
         plt.show()
 
         # Plot quaternions versus image number
         plt.figure(figsize=(10, 6))
-        plt.plot(range(1, len(quaternions) + 1), quaternions[:, 0], 'r-', label='Quaternion X')
-        plt.plot(range(1, len(quaternions) + 1), quaternions[:, 1], 'g-', label='Quaternion Y')
-        plt.plot(range(1, len(quaternions) + 1), quaternions[:, 2], 'b-', label='Quaternion Z')
-        plt.plot(range(1, len(quaternions) + 1), quaternions[:, 3], 'k-', label='Quaternion W')
-        plt.plot(range(1, len(quaternions_0) + 1), quaternions_0[:, 1], 'r--', label='Quaternion X')
-        plt.plot(range(1, len(quaternions_0) + 1), quaternions_0[:, 2], 'g--', label='Quaternion Y')
-        plt.plot(range(1, len(quaternions_0) + 1), quaternions_0[:, 3], 'b--', label='Quaternion Z')
-        plt.plot(range(1, len(quaternions_0) + 1), quaternions_0[:, 0], 'k--', label='Quaternion W')
+        plt.plot(nonzero_indices, quaternions_nonzero[:, 0], 'r-', label='X est')
+        plt.plot(nonzero_indices, quaternions_nonzero[:, 1], 'g-', label='Y est')
+        plt.plot(nonzero_indices, quaternions_nonzero[:, 2], 'b-', label='Z est')
+        plt.plot(nonzero_indices, quaternions_nonzero[:, 3], 'k-', label='W est')
+        plt.plot(range(1, len(quaternions_orig) + 1), quaternions_orig[:, 1], 'r--', label='X GT')
+        plt.plot(range(1, len(quaternions_orig) + 1), quaternions_orig[:, 2], 'g--', label='Y GT')
+        plt.plot(range(1, len(quaternions_orig) + 1), quaternions_orig[:, 3], 'b--', label='Z GT')
+        plt.plot(range(1, len(quaternions_orig) + 1), quaternions_orig[:, 0], 'k--', label='W GT')
         plt.xlabel('Image Number')
         plt.ylabel('Quaternion')
         plt.title('Quaternion Components Over Image Number')
-        plt.xticks(range(1, len(translations) + 1))  # Set x-axis ticks from 1 to the length of translations
+        plt.xticks(np.arange(0, len(translations) + 1, 5))  
         plt.legend()
         plt.grid(True)
         plt.show()

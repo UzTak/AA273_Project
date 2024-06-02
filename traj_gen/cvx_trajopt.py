@@ -66,7 +66,7 @@ con += [p[:,0] == p0]
 
 # landing conditions
 con += [v[:,-1] == np.zeros(3)]
-con += [p[:,-1] == np.zeros(3)]
+con += [p[:,-1] == np.array([0,0,3])]
 
 # vehicle dynamics and kinematicss
 con += [v[:,i+1] == v[:,i] + u[:,i]*h - h*g*np.array([0,0,1]) for i in range(K)]
@@ -94,6 +94,7 @@ obj = cp.sum(xi)
 
 # %%
 prob = cp.Problem(cp.Minimize(obj), con)
+# print(prob.status())
 prob.solve()
 
 m = np.exp(z.value)[:-1]
@@ -120,8 +121,8 @@ ax.quiver(p.value[0,:-1],p.value[1,:-1],p.value[2,:-1],
          fdir[0,:], fdir[1,:], fdir[2,:], zorder=5, color="black")
 
 ax.set_xlabel("x"); ax.set_ylabel("y"); ax.set_zlabel("z")
-# ax.axis('equal')
-plt.show()
+# ax.axis('equal') 
+# plt.show()
 
 # %%
 
@@ -191,14 +192,17 @@ def track_target(r_rtn, t, x_d=np.array([0, 0, -1]), r_target=np.zeros((3,1))):
 xyz = np.array(p.value[0:3, :])
 rv = np.array(p.value)
 
-t =  np.arange(np.shape(xyz)[1])
+t =  np.arange(np.shape(xyz)[1])*h
+print(t)
 # print(t.shape)
 
 # %%
-qw, dw = track_target(xyz, t)
-qw_thrust, _ = track_target(unorm, t[:-1])
-qw_end = np.concatenate((qw_thrust[:4,-1], np.zeros((3,))))
-qw_thrust = np.concatenate((qw_thrust, qw_end[:,np.newaxis]), axis=1)
+qw, dw = track_target(xyz, t, r_target=np.array([0, 0, 2.5]).reshape((3,1)))
+unorm_ext = np.concatenate((unorm, unorm[:,-1].reshape((3,1))), axis=1)
+qw_thrust, dw_r = track_target(unorm_ext, t, r_target=np.array([0, 0, 2.5]).reshape((3,1)))
+# qw_end = qw_thrust[:,-1]
+# qw_thrust = np.concatenate((qw_thrust, qw_end[:,np.newaxis]), axis=1)
+# print(qw_thrust[:, -2:])
 
 # %%
 def q2rotmat(q):
@@ -230,7 +234,7 @@ def plot_attitude_track(ax, rtn, qw, coneAngle, height=20):
     coneX = r * np.cos(theta)
     coneY = r * np.sin(theta)
     coneZ = r * height / radius  # Scale Z based on height and radius
-    coneX, coneY, coneZ = coneZ, coneX, coneY  # RTN trick
+    coneX, coneY, coneZ = coneX, coneY, -coneZ  # RTN trick
     
     for i in range(N):
         if i % Nfreq == 0 or i == N-1:
@@ -251,7 +255,7 @@ def plot_attitude_track(ax, rtn, qw, coneAngle, height=20):
             coneYRotated = coneVertices[1, :].reshape(coneY.shape)
             coneZRotated = coneVertices[2, :].reshape(coneZ.shape)
             
-            ax.plot_surface(coneXRotated, coneYRotated, coneZRotated, color='red', alpha=0.05, linewidth=0, antialiased=False)
+            ax.plot_surface(coneXRotated, coneYRotated, coneZRotated, color='blue', alpha=0.2, linewidth=0, antialiased=False)
 
 
 def whist_to_dw_hist(w, J, dt):
@@ -265,11 +269,11 @@ def whist_to_dw_hist(w, J, dt):
         dw : control history (3 x n_time-1)
     """
     
-    dw = np.zeros((3, w.shape[1]))
+    dw = np.zeros((3, w.shape[1]-1))
     for i in range(w.shape[1]-1):
-        dw[:, i] = (w[:, i+1] - w[:, i] - dt*np.linalg.inv(J)@(np.cross(w[:,i], np.dot(J, w[:,i])))) / dt
+        dw[:, i] = (w[:, i+1] - w[:, i] - dt*np.linalg.inv(J)@(np.cross(w[:,i], np.dot(J, w[:,i]))))
     
-    dw[:, -1] = dw[:, -2]  # or maybe zero?
+    # dw[:, -1] = dw[:, -2]  # or maybe zero?
     
     return dw 
 
@@ -288,22 +292,23 @@ def compute_dq(qhist1, qhist2):
     return dq
 
 # %%
-theta = np.pi/6
+theta = np.pi/18
 ax = plt.figure().add_subplot(projection='3d')
-plot_attitude_track(ax, xyz, qw, theta, height=100)
+plot_attitude_track(ax, xyz, qw, theta, height=15)
 ax.quiver(p.value[0,:-1],p.value[1,:-1],p.value[2,:-1], 
-         unorm[0], unorm[1], unorm[2], length=10, color="black")
-
-# ax.axis("equal")
+         unorm[0], unorm[1], unorm[2], length=10, linewidth=1, color="purple")
+ax.plot(xs=p.value[0,:],ys=p.value[1,:],zs=p.value[2,:], c='k', lw=2, zorder = 5)
+ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.autumn, linewidth=0.1, alpha = 0.5, edgecolors="k")
 ax.set_xlabel("x")
 ax.set_ylabel("y")
+ax.set_box_aspect([1,1,1])
 plt.show()
 
 # %%
 dt = h
 J = np.diag([3e6, 3e6, 5e4])   # FIXME; what is this? 
 state = np.vstack([xyz, v.value])
-dw_thrust = whist_to_dw_hist(dw, J, dt)  
+dw_thrust = whist_to_dw_hist(qw_thrust[4:, :], J, dt)  
 
 # print('qw.shape = ', qw.shape)
 # print('qw_thrust.shape = ', qw_thrust.shape)
