@@ -37,7 +37,9 @@ Rw = np.diag((1e-6)*np.ones(3,))
 Rp = np.diag((1e-4)*np.ones(3,))
 Rc = np.diag((1e-4)*np.ones(3,))
 
-
+print('arg1.shape = ', qw[1:,:4].shape)
+print('arg2.shape = ', qw[1:,4:].shape)
+print('arg3.shape = ', q_cam.shape)
 yhist = gen_full_meas(qw[1:,:4], qw[1:,4:], q_cam, Rw, Rp, Rc)
 uhist = np.zeros((len(t)-1,3)) 
 

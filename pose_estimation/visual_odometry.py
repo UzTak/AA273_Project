@@ -67,8 +67,12 @@ def load_original_traj(traj_path):
     n = len(timesteps)
     pos_and_vel = (traj_dict['pos']).T
     positions = pos_and_vel[:, 0:3]
-    attitudes_and_rates = (traj_dict['qw_camera']).T
-    return positions, attitudes_and_rates, timesteps
+    cam_attitudes_and_rates = (traj_dict['qw_camera']).T
+    rocket_attitudes_and_rates = (traj_dict['qw_rocket']).T
+    I = traj_dict['J']
+    u_moment = traj_dict['dw_rocket']
+    cam_to_rocket = traj_dict['dq_camera2rocket']
+    return positions, cam_attitudes_and_rates, rocket_attitudes_and_rates, cam_to_rocket, u_moment, timesteps, I
 
 def draw_axes(image, K_mtx, dist_coeffs, rvec, tvec, corners, axis_length):
     # Project axes points
@@ -118,6 +122,7 @@ class VisualOdometry():
         # Define intrinsic parameters
         self.dist_coeffs = dist_coeffs  # Distortion coefficients (if applicable)
         self.K_mtx = K_mtx
+        self.marker_orig = marker_orig
 
     def get_pose(self, image_folder_path):
         """
@@ -192,7 +197,7 @@ class VisualOdometry():
                     print("No ArUco markers were found in", filename)
                     blank_id = 203
                     blank_translation = np.array([0.0, 0.0, 0.0])
-                    blank_quat = np.array([0.0, 0.0, 0.0, 1.0])
+                    blank_quat = np.array([0.0, 0.0, 0.0, 0.0])
 
                     pose_info = {
                                 'filename': filename,
@@ -215,11 +220,12 @@ class VisualOdometry():
 
         # Extract translation vectors and quaternions
         translations = np.array([pose['translation'] for pose in camera_poses])
-        translations += marker_orig
+        translations += self.marker_orig
         quaternions = np.array([pose['rotation'] for pose in camera_poses])
 
         traj_path = './traj_gen/trajdata.npy'
-        translations_0, quaternions_0 = load_original_traj(traj_path)
+        load_traj_output = load_original_traj(traj_path)
+        translations_0, quaternions_0 = load_traj_output[:2]
 
         # Plot translation vectors versus image number
         plt.figure(figsize=(10, 6))
@@ -254,6 +260,8 @@ class VisualOdometry():
         plt.legend()
         plt.grid(True)
         plt.show()
+
+        return camera_poses
 
 if __name__ == '__main__':
     print(__doc__)
