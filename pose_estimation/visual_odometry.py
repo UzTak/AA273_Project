@@ -197,7 +197,7 @@ class VisualOdometry():
                     print("No ArUco markers were found in", filename)
                     blank_id = 203
                     blank_translation = np.array([0.0, 0.0, 0.0])
-                    blank_quat = np.array([0.0, 0.0, 0.0, 1.0])
+                    blank_quat = np.array([0.0, 0.0, 0.0, 0.0])
 
                     pose_info = {
                                 'filename': filename,
