@@ -220,12 +220,16 @@ class VisualOdometry():
 
         # Extract translation vectors and quaternions
         translations = np.array([pose['translation'] for pose in camera_poses])
+        translations = np.where(translations == 0, np.nan, translations) # set non-detected params to NaN (no show on plot)
         translations += self.marker_orig
         quaternions = np.array([pose['rotation'] for pose in camera_poses])
+        quaternions = np.where(quaternions == 0, np.nan, quaternions) # set non-detected params to NaN (no show on plot)
 
         traj_path = './traj_gen/trajdata.npy'
         load_traj_output = load_original_traj(traj_path)
         translations_0, quaternions_0 = load_traj_output[:2]
+
+        
 
         # Plot translation vectors versus image number
         plt.figure(figsize=(10, 6))
