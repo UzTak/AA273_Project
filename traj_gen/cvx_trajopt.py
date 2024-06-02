@@ -66,7 +66,7 @@ con += [p[:,0] == p0]
 
 # landing conditions
 con += [v[:,-1] == np.zeros(3)]
-con += [p[:,-1] == np.zeros(3)]
+con += [p[:,-1] == np.array([0,0,3])]
 
 # vehicle dynamics and kinematicss
 con += [v[:,i+1] == v[:,i] + u[:,i]*h - h*g*np.array([0,0,1]) for i in range(K)]
@@ -94,6 +94,7 @@ obj = cp.sum(xi)
 
 # %%
 prob = cp.Problem(cp.Minimize(obj), con)
+# print(prob.status())
 prob.solve()
 
 m = np.exp(z.value)[:-1]
@@ -196,9 +197,9 @@ print(t)
 # print(t.shape)
 
 # %%
-qw, dw = track_target(xyz, t)
+qw, dw = track_target(xyz, t, r_target=np.array([0, 0, 2.5]).reshape((3,1)))
 unorm_ext = np.concatenate((unorm, unorm[:,-1].reshape((3,1))), axis=1)
-qw_thrust, dw_r = track_target(unorm_ext, t)
+qw_thrust, dw_r = track_target(unorm_ext, t, r_target=np.array([0, 0, 2.5]).reshape((3,1)))
 # qw_end = qw_thrust[:,-1]
 # qw_thrust = np.concatenate((qw_thrust, qw_end[:,np.newaxis]), axis=1)
 # print(qw_thrust[:, -2:])
@@ -233,7 +234,7 @@ def plot_attitude_track(ax, rtn, qw, coneAngle, height=20):
     coneX = r * np.cos(theta)
     coneY = r * np.sin(theta)
     coneZ = r * height / radius  # Scale Z based on height and radius
-    coneX, coneY, coneZ = coneZ, coneX, coneY  # RTN trick
+    coneX, coneY, coneZ = coneX, coneY, -coneZ  # RTN trick
     
     for i in range(N):
         if i % Nfreq == 0 or i == N-1:
@@ -291,9 +292,9 @@ def compute_dq(qhist1, qhist2):
     return dq
 
 # %%
-theta = np.pi/6
+theta = np.pi/18
 ax = plt.figure().add_subplot(projection='3d')
-plot_attitude_track(ax, xyz, qw, theta, height=100)
+plot_attitude_track(ax, xyz, qw, theta, height=20)
 ax.quiver(p.value[0,:-1],p.value[1,:-1],p.value[2,:-1], 
          unorm[0], unorm[1], unorm[2], length=10, color="black")
 
