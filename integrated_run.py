@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from blender_sim.data_processing import ImageGenerator
+# from blender_sim.image_generator import ImageGenerator
 from pose_estimation.filter import MEKF
 from pose_estimation.meas_gen_utils import *
 from pose_estimation.visual_odometry import VisualOdometry, load_original_traj
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     # meas (y) = [dp_camera, dp_IMU, w_IMU]
     Rw = np.diag((1e-4)*np.ones(3,)) # actual IMU velocity measurement noise
     Rp = np.diag((1e-4)*np.ones(3,)) # actual IMU attitude measurement noise
-    Rc = np.diag((1e-4)*np.ones(3,)) # actual camera atitiude measurment noise
+    Rc = np.diag((1e-4)*np.ones(3,)) # actual camera attitude measurment noise
     # print('arg1.shape = ', qw_r[1:,:4].shape)
     # print('arg2.shape = ', qw_r[1:,4:].shape)
     # print('arg3.shape = ', q_camera.shape)
