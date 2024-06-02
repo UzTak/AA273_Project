@@ -11,6 +11,12 @@ if __name__ == "__main__":
     # Load original traj
     traj_path = 'traj_gen/trajdata.npy'
     p_xyz, qw_c, qw_r, dq_c2r, uhist, t, J = load_original_traj(traj_path)
+    print(p_xyz.shape)
+    print(qw_c.shape)
+    print(qw_r.shape)
+    print(dq_c2r.shape)
+    print(uhist.shape)
+    print(t.shape)
 
     n = len(p_xyz)
 
@@ -59,7 +65,7 @@ if __name__ == "__main__":
     print('arg1.shape = ', qw_r[1:,:4].shape)
     print('arg2.shape = ', qw_r[1:,4:].shape)
     print('arg3.shape = ', q_camera.shape)
-    yhist = gen_full_meas(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], Rw, Rp, Rc)
+    yhist = gen_full_meas(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], dq_c2r.T, Rw, Rp, Rc)
     uhist = uhist.T
 
     

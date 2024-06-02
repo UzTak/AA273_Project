@@ -283,9 +283,9 @@ def compute_dq(qhist1, qhist2):
     for i in range(n_time):
         q1 = qhist1[:4, i]
         q2 = qhist2[:4, i]
-        dq[:,i] = q_mul(q_conj(q2), q1)
-    
-    return 
+        q2_conj = q_conj(q2)
+        dq[:,i] = q_mul(q2_conj, q1)
+    return dq
 
 # %%
 theta = np.pi/6
@@ -305,7 +305,10 @@ J = np.diag([3e6, 3e6, 5e4])   # FIXME; what is this?
 state = np.vstack([xyz, v.value])
 dw_thrust = whist_to_dw_hist(dw, J, dt)  
 
+print('qw.shape = ', qw.shape)
+print('qw_thrust.shape = ', qw_thrust.shape)
 dq_camera2rocket = compute_dq(qw, qw_thrust)    
+print(dq_camera2rocket)
 
 data = {
     "J" : J,
