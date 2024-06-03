@@ -30,10 +30,10 @@ if __name__ == "__main__":
     qw0 = qw_r[0]
     w0 = qw0[4:]
     mu0 = np.concatenate((np.zeros(3,), w0))   # [dp, w]
-    Sig0 = np.diag([1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4])
+    Sig0 = np.diag([1e-2, 1e-2, 1e-2, 1e-3, 1e-3, 1e-3])
     n_steps = len(t)-1 
-    Q = np.diag([1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4]) # expected process noise to feed into MEKF
-    R = np.diag([1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4]) # expected meas noise to feed into MEKF
+    Q = np.diag([1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3]) # expected process noise to feed into MEKF
+    R = np.diag([1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3]) # expected meas noise to feed into MEKF
     mekf = MEKF(mu0, Sig0, Q, R, qw_r[0,:4], dt=dt)
     
     # estimate hisotry 
@@ -66,6 +66,8 @@ if __name__ == "__main__":
     # print('arg2.shape = ', qw_r[1:,4:].shape)
     # print('arg3.shape = ', q_camera.shape)
     yhist = gen_full_meas(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], dq_c2r.T, Rw, Rp, Rc)
+    yhist = gen_full_meas2(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], dq_c2r.T, Rw, Rp, Rc)  # IMU 
+    
     uhist = uhist.T
 
     # for i in range(n):
@@ -90,4 +92,5 @@ if __name__ == "__main__":
     fig = plot_sol_qw2(fig, np.transpose(qw_r), None, t, qw_ref=None, c="g")
     fig = plot_sol_qw2(fig, np.transpose(xest_hist), None, t, qw_ref=None, c="b")
     fig2 = MRP_error_band(xest_hist[:, 4:], final_mrp, Pest_hist, dt)
+    plt.tight_layout()
     plt.show()
