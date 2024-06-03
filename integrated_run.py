@@ -83,8 +83,7 @@ if __name__ == "__main__":
         mu_hist[t_index+1], xest_hist[t_index+1], Pest_hist[t_index+1] = mu_est_mekf, x_est_mekf, P_est_mekf
         print("timestep: ", t_index)
 
-    fig = plt.figure(figsize=(12,8))
-    # fig = plot_sol_qw2(fig, np.transpose(qw_r), None, t, qw_ref=None, c="g")
-    # fig = plot_sol_qw2(fig, np.transpose(xest_hist), None, t, qw_ref=None, c="b")
+    fig = plot_sol_qw2(fig, np.transpose(qw_r), None, t, qw_ref=None, c="g")
+    fig = plot_sol_qw2(fig, np.transpose(xest_hist), None, t, qw_ref=None, c="b")
     fig = MRP_error_band(xest_hist[:, 4:], mu_hist[:, :3], Pest_hist, dt)
     plt.show()
