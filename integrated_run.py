@@ -62,9 +62,6 @@ if __name__ == "__main__":
     Rw = np.diag((1e-4)*np.ones(3,)) # actual IMU velocity measurement noise
     Rp = np.diag((1e-4)*np.ones(3,)) # actual IMU attitude measurement noise
     Rc = np.diag((1e-4)*np.ones(3,)) # actual camera attitude measurment noise
-    # print('arg1.shape = ', qw_r[1:,:4].shape)
-    # print('arg2.shape = ', qw_r[1:,4:].shape)
-    # print('arg3.shape = ', q_camera.shape)
     yhist = gen_full_meas(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], dq_c2r.T, Rw, Rp, Rc)
     uhist = uhist.T
 
@@ -75,7 +72,6 @@ if __name__ == "__main__":
         # run MEKF 
         mu_est_mekf, x_est_mekf, P_est_mekf = mekf.step(u, y, J)
         mu_hist[t_index+1], xest_hist[t_index+1], Pest_hist[t_index+1] = mu_est_mekf, x_est_mekf, P_est_mekf
-        print("timestep: ", t_index)
 
 
     # rocket quat: qw_r
@@ -84,7 +80,6 @@ if __name__ == "__main__":
     for i in range(n):
         dq = q_mul(q_conj(qw_r[i, :4]), xest_hist[i, :4])
         final_mrp[i, :] = quat_to_mrp(dq)
-    print(final_mrp.shape)
 
     fig = plt.figure(figsize=(12,8))
     fig = plot_sol_qw2(fig, np.transpose(qw_r), None, t, qw_ref=None, c="g")
