@@ -33,7 +33,7 @@ def cam_estimate_to_meas(q_cam_meas, dq_cam2roc, qnom, Rc):
     yp = np.zeros_like(q_cam_meas)
     for i in range(T):
         if np.all(q_cam_meas[i] == 0):
-            yp[i] = np.full(4, np.nan)
+            yp[i] = np.zeros((4,))
         else:
             yp[i] = q_mul(dq_cam2roc[i], q_cam_meas[i])
     

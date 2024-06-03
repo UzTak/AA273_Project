@@ -66,7 +66,7 @@ class MEKF(Filter):
         Phi, B, C = mekf_stm(self.mu, I, self.dt) 
         ya = np.zeros((9,))
         ya[3:] = y[4:]
-        if np.any(np.isnan(y[:4])):
+        if np.all(y[:4] == 0):
             # print("changing C mat")
             C[:3, :3] = np.zeros((3,3))
             # y[:4] = np.zeros((3,))
