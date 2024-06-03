@@ -4,6 +4,7 @@ import scipy as sp
 from scipy.integrate import odeint 
 
 from pose_estimation.dynamics.dynamics_rot import *
+from pose_estimation.meas_gen_utils import *
 
 def ssDef(x, dt):
     A = None
@@ -63,11 +64,17 @@ class MEKF(Filter):
 
         # linear state mean and cov prop
         Phi, B, C = mekf_stm(self.mu, I, self.dt) 
-        if np.any(np.isnan(y[:3])):
+        ya = np.zeros((9,))
+        ya[3:] = y[4:]
+        if np.any(np.isnan(y[:4])):
             # print("changing C mat")
             C[:3, :3] = np.zeros((3,3))
-            y[:3] = np.zeros((3,))
+            # y[:4] = np.zeros((3,))
             # print(C)
+        else:
+            dq = q_mul(y[:4], q_conj(q_tplus_t))
+            ya[:3] = quat_to_mrp(dq)
+        
         mu_tplus_t = self.stateUpdate(self.mu, u, Phi, B, self.dt)
         Sig_tplus_t = Phi @ self.Sig @ Phi.T + self.Q
 
@@ -80,7 +87,7 @@ class MEKF(Filter):
         z = self.measFunc(mu_tplus_t, C, self.dt)
 
         # state mean and cov update
-        mu_tplus_tplus = mu_tplus_t + K @ (y - z)
+        mu_tplus_tplus = mu_tplus_t + K @ (ya - z)
         self.Sig = Sig_tplus_t - K @ C @ Sig_tplus_t
 
         #### reset step ####

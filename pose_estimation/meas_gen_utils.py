@@ -29,22 +29,33 @@ def cam_estimate_to_meas(q_cam_meas, dq_cam2roc, qnom, Rc):
 
     T, n = q_cam_meas.shape
     v_noise = sp.linalg.sqrtm(Rc) @ np.random.normal(size = [3, T])
-    q_roc_meas_conj = np.zeros_like(q_cam_meas)
+
+    yp = np.zeros_like(q_cam_meas)
     for i in range(T):
-        q_roc_meas_conj[i] = q_conj(q_mul(dq_cam2roc[i], q_cam_meas[i]))
-    yp = np.zeros((T,3))
-
-    for i, (qconj, q) in enumerate(zip(q_roc_meas_conj, qnom)):
-        # print(i)
         if np.all(q_cam_meas[i] == 0):
-            yp[i,:] = np.full(3, np.nan)
-            # print("assigned faulty meas")
+            yp[i] = np.full(4, np.nan)
         else:
-            dq = q_mul(q, qconj)
-            # print('dq_meas = ', dq)
-            yp[i,:] = quat_to_mrp(dq)
+            yp[i] = q_mul(dq_cam2roc[i], q_cam_meas[i])
+    
+    yp[:,1:] += v_noise.T
+    yp /= np.linalg.norm(yp, axis=1)[:,np.newaxis]
 
-    yp += v_noise.T
+    # q_roc_meas_conj = np.zeros_like(q_cam_meas)
+    # for i in range(T):
+    #     q_roc_meas_conj[i] = q_conj(q_mul(dq_cam2roc[i], q_cam_meas[i]))
+    # yp = np.zeros((T,3))
+
+    # for i, (qconj, q) in enumerate(zip(q_roc_meas_conj, qnom)):
+    #     # print(i)
+    #     if np.all(q_cam_meas[i] == 0):
+    #         yp[i,:] = np.full(3, np.nan)
+    #         # print("assigned faulty meas")
+    #     else:
+    #         dq = q_mul(q, qconj)
+    #         # print('dq_meas = ', dq)
+    #         yp[i,:] = quat_to_mrp(dq)
+
+    # yp += v_noise.T
 
     return yp
 
@@ -58,7 +69,7 @@ def gen_full_meas(q_hist, w_hist, q_cam, dq_c2r, Rw, Rp, Rc):
         Rp: 3 x 3 numpy array of pose measurement covariance
         Rc: 3 x 3 numpy array of camera quaternion measurement covariance
     outputs:
-        z: n x 9 numpy array of measurements
+        z: n x 10 numpy array of measurements
     """
 
     y1 = cam_estimate_to_meas(q_cam, dq_c2r, q_hist, Rc)
