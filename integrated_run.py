@@ -33,7 +33,7 @@ if __name__ == "__main__":
     Sig0 = np.diag([1e-2, 1e-2, 1e-2, 1e-3, 1e-3, 1e-3])
     n_steps = len(t)-1 
     Q = np.diag([1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3]) # expected process noise to feed into MEKF
-    R = np.diag([1e-2, 1e-2, 1e-2, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3]) # expected meas noise to feed into MEKF
+    R = np.diag([1e-4, 1e-4, 1e-4, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3]) # expected meas noise to feed into MEKF
     mekf = MEKF(mu0, Sig0, Q, R, qw_r[0,:4], dt=dt)
     
     # estimate hisotry 
@@ -59,11 +59,11 @@ if __name__ == "__main__":
     q_camera[:,1:] = q_temp[:,:3]
     
     # meas (y) = [dp_camera, dp_IMU, w_IMU]
-    Rw = np.diag((1e-4)*np.ones(3,)) # actual IMU velocity measurement noise
-    Rp = np.diag((1e-4)*np.ones(3,)) # actual IMU attitude measurement noise
-    Rc = np.diag((1e-4)*np.ones(3,)) # actual camera attitude measurment noise
-    yhist = gen_full_meas(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], dq_c2r.T, Rw, Rp, Rc)
-    # yhist = gen_full_meas2(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], dq_c2r.T, Rw, Rp, Rc)  # IMU 
+    Rw = np.diag((1e-3)*np.ones(3,)) # actual IMU velocity measurement noise
+    Rp = np.diag((1e-3)*np.ones(3,)) # actual IMU attitude measurement noise
+    Rc = np.diag((1e-10)*np.ones(3,)) # actual camera attitude measurment noise
+    # yhist = gen_full_meas(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], dq_c2r.T, Rw, Rp, Rc)
+    yhist = gen_full_meas2(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], dq_c2r.T, Rw, Rp, Rc)  # IMU 
     
     uhist = uhist.T
 

@@ -2,6 +2,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+
+
 def MRP_error_band(omega, mrp, covariance, dt):
     """
     Inputs: 
@@ -12,11 +14,11 @@ def MRP_error_band(omega, mrp, covariance, dt):
     Outputs: 
     6 error band plots
     """
-    print(covariance.shape)
+    plt.rcParams['axes.grid'] = True
     n = omega.shape[0]  # Number of time steps
     t_vals = np.linspace(0, n*dt, n)
 
-    fig, axs = plt.subplots(3, 2, figsize=(12, 12))
+    fig, axs = plt.subplots(3, 2, figsize=(8, 12))
 
     for i in range(3):
         # Plot omega
@@ -36,8 +38,6 @@ def MRP_error_band(omega, mrp, covariance, dt):
     for i in range(n):
         std_vals[i, :] = np.sqrt(np.diag(covariance[i, :, :]))
 
-    print(std_vals)
-    # print('HERE bro I got here')
     axs[0, 0].fill_between(t_vals, omega[:, 0] - 1*std_vals[:, 3], omega[:, 0] + 1*std_vals[:, 3], color='green', alpha=0.3)
     axs[1, 0].fill_between(t_vals, omega[:, 1] - 1*std_vals[:, 4], omega[:, 1] + 1*std_vals[:, 4], color='green', alpha=0.3)
     axs[2, 0].fill_between(t_vals, omega[:, 2] - 1*std_vals[:, 5], omega[:, 2] + 1*std_vals[:, 5], color='green', alpha=0.3)

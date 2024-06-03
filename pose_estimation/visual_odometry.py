@@ -180,6 +180,10 @@ class VisualOdometry():
 
                         quat = rot.as_quat() 
 
+                        if np.any(transformation_translation < 0.0):
+                            transformation_translation = np.array([0.0, 0.0, 0.0])
+                            quat = np.array([0.0, 0.0, 0.0, 0.0])
+
                         # #Display the image with axes
                         # image_with_axes = draw_axes(image.copy(), self.K_mtx, self.dist_coeffs, rvecs, tvecs, corners[0], axis_length=20)
                         # cv2.imshow('Image with Axes', image_with_axes)
@@ -235,8 +239,6 @@ class VisualOdometry():
         traj_path = './traj_gen/trajdata.npy'
         load_traj_output = load_original_traj(traj_path)
         translations_orig, quaternions_orig = load_traj_output[:2]
-
-        
 
         # Plot translation vectors versus image number
         plt.figure(figsize=(10, 6))
