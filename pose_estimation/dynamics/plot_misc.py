@@ -71,16 +71,19 @@ def plot_sol_qw2(fig, qw, dw, t, qw_ref=None, c="g"):
             plt.ylabel('$w_1$')
             # plt.grid(True)
             # plt.ylim([w_lb,w_ub]) 
+            plt.ylim([-0.2,0.2])
         elif j == 5:
             plt.xlabel('time [s]')
             plt.ylabel('$w_2$')
             # plt.grid(True)
             # plt.ylim([w_lb,w_ub]) 
+            plt.ylim([-0.2,0.2])
         elif j == 6:
             plt.xlabel('time [s]')
             plt.ylabel('$w_3$')
             # plt.grid(True)
             # plt.ylim([w_lb,w_ub]) 
+            plt.ylim([-0.2,0.2])
         elif j == 7:
             plt.xlabel('time [s]')
             plt.ylabel('$|q|$')

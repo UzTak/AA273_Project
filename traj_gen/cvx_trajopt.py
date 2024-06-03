@@ -199,7 +199,7 @@ print(t)
 # %%
 qw, dw = track_target(xyz, t, r_target=np.array([0, 0, 2.5]).reshape((3,1)))
 unorm_ext = np.concatenate((unorm, unorm[:,-1].reshape((3,1))), axis=1)
-qw_thrust, dw_r = track_target(unorm_ext, t, r_target=np.array([0, 0, 2.5]).reshape((3,1)))
+qw_thrust, dw_r = track_target(unorm_ext, t)
 # qw_end = qw_thrust[:,-1]
 # qw_thrust = np.concatenate((qw_thrust, qw_end[:,np.newaxis]), axis=1)
 # print(qw_thrust[:, -2:])
