@@ -62,8 +62,8 @@ if __name__ == "__main__":
     Rw = np.diag((1e-3)*np.ones(3,)) # actual IMU velocity measurement noise
     Rp = np.diag((1e-3)*np.ones(3,)) # actual IMU attitude measurement noise
     Rc = np.diag((1e-10)*np.ones(3,)) # actual camera attitude measurment noise
-    # yhist = gen_full_meas(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], dq_c2r.T, Rw, Rp, Rc)
-    yhist = gen_full_meas2(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], dq_c2r.T, Rw, Rp, Rc)  # IMU 
+    yhist = gen_full_meas(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], dq_c2r.T, Rw, Rp, Rc)
+    # yhist = gen_full_meas2(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], dq_c2r.T, Rw, Rp, Rc)  # IMU 
     
     uhist = uhist.T
 

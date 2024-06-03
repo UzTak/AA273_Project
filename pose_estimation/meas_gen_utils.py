@@ -28,17 +28,18 @@ def cam_estimate_to_meas(q_cam_meas, dq_cam2roc, qnom, Rc):
     ### takes in quaternion camera esimate history, quaternion state history, and generates noisy attitude measurements ###
 
     T, n = q_cam_meas.shape
-    v_noise = sp.linalg.sqrtm(Rc) @ np.random.normal(size = [3, T])
+    v_noise = sp.linalg.sqrtm(Rc) @ np.random.normal(size = (3,))
 
     yp = np.zeros_like(q_cam_meas)
     for i in range(T):
         if np.all(q_cam_meas[i] == 0):
             yp[i] = np.zeros((4,))
         else:
-            yp[i] = q_mul(dq_cam2roc[i], q_cam_meas[i])
-    
-    yp[:,1:] += v_noise.T
-    yp /= np.linalg.norm(yp, axis=1)[:,np.newaxis]
+            y_int = q_mul(dq_cam2roc[i], q_cam_meas[i])
+            y_int[1:] += v_noise
+            # print(y_int)
+            yp[i] = y_int
+            yp[i] /= np.linalg.norm(yp[i])
 
     # q_roc_meas_conj = np.zeros_like(q_cam_meas)
     # for i in range(T):
