@@ -6,17 +6,12 @@ from pose_estimation.filter import MEKF
 from pose_estimation.meas_gen_utils import *
 from pose_estimation.visual_odometry import VisualOdometry, load_original_traj
 from pose_estimation.dynamics.plot_misc import *
+from pose_estimation.plotter import *
 
 if __name__ == "__main__":
     # Load original traj
     traj_path = 'traj_gen/trajdata.npy'
     p_xyz, qw_c, qw_r, dq_c2r, uhist, t, J = load_original_traj(traj_path)
-    print(p_xyz.shape)
-    print(qw_c.shape)
-    print(qw_r.shape)
-    print(dq_c2r.shape)
-    print(uhist.shape)
-    print(t.shape)
 
     n = len(p_xyz)
 
@@ -29,7 +24,7 @@ if __name__ == "__main__":
     K_mtx = np.array([[424.3378, 0., 424.], [0., 424.3378, 240.], [0., 0., 1.]])
     dist_coeffs = np.zeros((4, 1))
     vision = VisualOdometry(marker_side_len, marker_orig, dist_coeffs, K_mtx)
-    dt = t[1] - t[0]          
+    dt = t[1] - t[0]
     
     # Set up MEKF
     qw0 = qw_r[0]
@@ -42,7 +37,8 @@ if __name__ == "__main__":
     mekf = MEKF(mu0, Sig0, Q, R, qw_r[0,:4], dt=dt)
     
     # estimate hisotry 
-    xest_hist = np.empty((n_steps+1, 7))
+    xest_hist = np.empty((n_steps+1, 7)) # This is with quat
+    mu_hist = np.empty((n_steps+1, 6)) # This is with MRP
     Pest_hist = np.empty((n_steps+1, 6, 6))
     xest_hist[0] = qw0
     Pest_hist[0] = Sig0
@@ -72,19 +68,26 @@ if __name__ == "__main__":
     yhist = gen_full_meas(qw_r[1:,:4], qw_r[1:,4:], q_camera[1:], dq_c2r.T, Rw, Rp, Rc)
     uhist = uhist.T
 
-    
     # for i in range(n):
     for t_index, (u, y) in enumerate(zip(uhist, yhist)):
         # print("u = ", u)
-        print("y_cam = ", y[:3])
         # print("J = ", J)
         # run MEKF 
-        x_est_mekf, P_est_mekf = mekf.step(u, y, J)
-        xest_hist[t_index+1], Pest_hist[t_index+1] = x_est_mekf, P_est_mekf
+        mu_est_mekf, x_est_mekf, P_est_mekf = mekf.step(u, y, J)
+        mu_hist[t_index+1], xest_hist[t_index+1], Pest_hist[t_index+1] = mu_est_mekf, x_est_mekf, P_est_mekf
         print("timestep: ", t_index)
+
+
+    # rocket quat: qw_r
+    # estimated final quat: xest_hist[:, :3]
+    final_mrp = np.zeros((n, 3))
+    for i in range(n):
+        dq = q_mul(q_conj(qw_r[i, :4]), xest_hist[i, :4])
+        final_mrp[i, :] = quat_to_mrp(dq)
+    print(final_mrp.shape)
 
     fig = plt.figure(figsize=(12,8))
     fig = plot_sol_qw2(fig, np.transpose(qw_r), None, t, qw_ref=None, c="g")
     fig = plot_sol_qw2(fig, np.transpose(xest_hist), None, t, qw_ref=None, c="b")
-
+    fig2 = MRP_error_band(xest_hist[:, 4:], final_mrp, Pest_hist, dt)
     plt.show()
