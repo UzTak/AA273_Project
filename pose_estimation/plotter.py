@@ -38,12 +38,12 @@ def MRP_error_band(omega, mrp, covariance, dt):
 
     print(std_vals)
     # print('HERE bro I got here')
-    axs[0, 0].fill_between(t_vals, omega[:, 0] - 2*std_vals[:, 3], omega[:, 0] + 2*std_vals[:, 3], color='green', alpha=0.3)
-    axs[1, 0].fill_between(t_vals, omega[:, 1] - 2*std_vals[:, 4], omega[:, 1] + 2*std_vals[:, 4], color='green', alpha=0.3)
-    axs[2, 0].fill_between(t_vals, omega[:, 2] - 2*std_vals[:, 5], omega[:, 2] + 2*std_vals[:, 5], color='green', alpha=0.3)
-    axs[0, 1].fill_between(t_vals, mrp[:, 0] - 2*std_vals[:, 0], mrp[:, 0] + 2*std_vals[:, 0], color='green', alpha=0.3)
-    axs[1, 1].fill_between(t_vals, mrp[:, 1] - 2*std_vals[:, 1], mrp[:, 1] + 2*std_vals[:, 1], color='green', alpha=0.3)
-    axs[2, 1].fill_between(t_vals, mrp[:, 2] - 2*std_vals[:, 2], mrp[:, 2] + 2*std_vals[:, 2], color='green', alpha=0.3)
+    axs[0, 0].fill_between(t_vals, omega[:, 0] - 1*std_vals[:, 3], omega[:, 0] + 1*std_vals[:, 3], color='green', alpha=0.3)
+    axs[1, 0].fill_between(t_vals, omega[:, 1] - 1*std_vals[:, 4], omega[:, 1] + 1*std_vals[:, 4], color='green', alpha=0.3)
+    axs[2, 0].fill_between(t_vals, omega[:, 2] - 1*std_vals[:, 5], omega[:, 2] + 1*std_vals[:, 5], color='green', alpha=0.3)
+    axs[0, 1].fill_between(t_vals, -1*std_vals[:, 0], +1*std_vals[:, 0], color='green', alpha=0.3)
+    axs[1, 1].fill_between(t_vals, -1*std_vals[:, 1], +1*std_vals[:, 1], color='green', alpha=0.3)
+    axs[2, 1].fill_between(t_vals, -1*std_vals[:, 2], +1*std_vals[:, 2], color='green', alpha=0.3)
 
     return fig
     # plt.tight_layout()

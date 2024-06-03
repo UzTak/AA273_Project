@@ -12,12 +12,6 @@ if __name__ == "__main__":
     # Load original traj
     traj_path = 'traj_gen/trajdata.npy'
     p_xyz, qw_c, qw_r, dq_c2r, uhist, t, J = load_original_traj(traj_path)
-    print(p_xyz.shape)
-    print(qw_c.shape)
-    print(qw_r.shape)
-    print(dq_c2r.shape)
-    print(uhist.shape)
-    print(t.shape)
 
     n = len(p_xyz)
 
@@ -83,7 +77,17 @@ if __name__ == "__main__":
         mu_hist[t_index+1], xest_hist[t_index+1], Pest_hist[t_index+1] = mu_est_mekf, x_est_mekf, P_est_mekf
         print("timestep: ", t_index)
 
+
+    # rocket quat: qw_r
+    # estimated final quat: xest_hist[:, :3]
+    final_mrp = np.zeros((n, 3))
+    for i in range(n):
+        dq = q_mul(q_conj(qw_r[i, :4]), xest_hist[i, :4])
+        final_mrp[i, :] = quat_to_mrp(dq)
+    print(final_mrp.shape)
+
+    fig = plt.figure(figsize=(12,8))
     fig = plot_sol_qw2(fig, np.transpose(qw_r), None, t, qw_ref=None, c="g")
     fig = plot_sol_qw2(fig, np.transpose(xest_hist), None, t, qw_ref=None, c="b")
-    fig = MRP_error_band(xest_hist[:, 4:], mu_hist[:, :3], Pest_hist, dt)
+    fig2 = MRP_error_band(xest_hist[:, 4:], final_mrp, Pest_hist, dt)
     plt.show()
