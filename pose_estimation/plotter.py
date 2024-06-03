@@ -32,16 +32,18 @@ def MRP_error_band(omega, mrp, covariance, dt):
         axs[i, 1].set_ylabel('Value')
 
     # Plot covariance error bands
+    std_vals = np.zeros((n, 6))
     for i in range(n):
-        cov_diag = np.sqrt(np.diag(covariance[i, :, :]))
-        print(cov_diag)
-        # print('HERE bro I got here')
-        axs[0, 0].fill_between(t_vals[i], omega[i, 0] - 5*cov_diag[3], omega[i, 0] + 5*cov_diag[3], alpha=0.9)
-        axs[1, 0].fill_between(t_vals[i], omega[i, 1] - 5*cov_diag[4], omega[i, 1] + 5*cov_diag[4], alpha=0.9)
-        axs[2, 0].fill_between(t_vals[i], omega[i, 2] - 5*cov_diag[5], omega[i, 2] + 5*cov_diag[5], alpha=0.9)
-        axs[0, 1].fill_between(t_vals[i], mrp[i, 0] - 5*cov_diag[0], mrp[i, 0] + 5*cov_diag[0], alpha=0.9)
-        axs[1, 1].fill_between(t_vals[i], mrp[i, 1] - 5*cov_diag[1], mrp[i, 1] + 5*cov_diag[1], alpha=0.9)
-        axs[2, 1].fill_between(t_vals[i], mrp[i, 2] - 5*cov_diag[2], mrp[i, 2] + 5*cov_diag[2], alpha=0.9)
+        std_vals[i, :] = np.sqrt(np.diag(covariance[i, :, :]))
+
+    print(std_vals)
+    # print('HERE bro I got here')
+    axs[0, 0].fill_between(t_vals, omega[:, 0] - 2*std_vals[:, 3], omega[:, 0] + 2*std_vals[:, 3], color='green', alpha=0.3)
+    axs[1, 0].fill_between(t_vals, omega[:, 1] - 2*std_vals[:, 4], omega[:, 1] + 2*std_vals[:, 4], color='green', alpha=0.3)
+    axs[2, 0].fill_between(t_vals, omega[:, 2] - 2*std_vals[:, 5], omega[:, 2] + 2*std_vals[:, 5], color='green', alpha=0.3)
+    axs[0, 1].fill_between(t_vals, mrp[:, 0] - 2*std_vals[:, 0], mrp[:, 0] + 2*std_vals[:, 0], color='green', alpha=0.3)
+    axs[1, 1].fill_between(t_vals, mrp[:, 1] - 2*std_vals[:, 1], mrp[:, 1] + 2*std_vals[:, 1], color='green', alpha=0.3)
+    axs[2, 1].fill_between(t_vals, mrp[:, 2] - 2*std_vals[:, 2], mrp[:, 2] + 2*std_vals[:, 2], color='green', alpha=0.3)
 
     return fig
     # plt.tight_layout()
