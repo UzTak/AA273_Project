@@ -92,10 +92,10 @@ def gen_full_meas2(q_hist, w_hist, q_cam, dq_c2r, Rw, Rp, Rc):
         Rp: 3 x 3 numpy array of pose measurement covariance
         Rc: 3 x 3 numpy array of camera quaternion measurement covariance
     outputs:
-        z: n x 9 numpy array of measurements
+        z: n x 10 numpy array of measurements
     """
 
-    y1 = np.zeros((q_cam.shape[0], 3))
+    y1 = np.zeros((q_cam.shape[0], 4))
     y2 = attitude_meas_IMU(q_hist, Rp)
     y3 = velocity_meas_IMU(w_hist, Rw)
 
