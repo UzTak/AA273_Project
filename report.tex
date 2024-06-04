@@ -163,7 +163,8 @@ These are listed below.
 
 \begin{eqnarray*}
     I_{sp} = 282 \text{ s} & m_{wet} = 42.2 \cdot 10^3 \text{ kg} & m_{dry} = 22.2 \cdot 10^3 \text{ kg} \\
-    
+    \gamma_{gs} = 0.5 \text{ rad} & g = 9.807 \text{ m/s\textsuperscript{2}} & \delta t = 0.1 \text{ s} \\
+    t_f = 8 \text{ s}
 \end{eqnarray*}
 
 For the purposes of this analysis, no process noise has been injected onto the nominal trajectory. Therefore, the true state of the system is equivalent to the nominal trajectory solution. 
@@ -223,7 +224,8 @@ K = \begin{bmatrix}
 With the ArUco marker simulated with a 10 meter side length in Blender, the origin of the marker's frame as well as its coordinates are known in 3D space. 
 The 2D pixel coordinates of the origin and corners are found by OpenCV's detection function. 
 The 3D known coordinates coupled with the 2D pixel coordinates allow the PnP problem to be solved with OpenCV's pose estimation function, yielding the camera pose.
-The camera pose is then transformed into 
+The resulting pose is then converted to OpenCV convention then transformed into the world frame to account for the landing pad offset from the actual ground.
+The following 
 
 
 \subsection{Attitude filtering}
@@ -243,22 +245,24 @@ The prediction step is expressed as follows:
      & = A_{t} 
      \begin{bmatrix}
          \delta p_{t|t} \\ \omega_{t|t}
-     \end{bmatrix} + B_t u_t 
-    \Simga_{t|t+1} = A_t \Simga_{t|t+1}  
+     \end{bmatrix} + B_t u_t  \\
+    \Sigma_{t|t+1} & = A_t \Sigma_{t|t} A_t^T + Q_t 
 \end{align*}
 
 The update step is expressed as follows:
 %
 \begin{align*}
+    K_t & =  \Sigma_{t+1|t} C_t^\top (C_t \Sigma_{t+1|t} C_t^T + R_t)^{-1} \\
     \begin{bmatrix}
          \delta p_{t+1|t+1} \\ \omega_{t+1|t+1}
      \end{bmatrix}
      & = 
      \begin{bmatrix}
          \delta p_{t|t+1} \\ \omega_{t|t+1}
-     \end{bmatrix} 
+     \end{bmatrix} + K_t \left(y_t - g\left(\mu_{t+1|t} \right) \right) 
      \\
-    q_{t+1|t+1} & = \delta q(\delta p_{t}) \circ q_{t|t+1}
+     \Sigma_{t+1|t+1} & = \Sigma_{t+1|t} - K_t C_t  \Sigma_{t+1|t}  \\
+    q_{t+1|t+1} & = \delta q(\delta p_{t}) \circ q_{t+1|t}
 \end{align*}
 
 After the update, 
