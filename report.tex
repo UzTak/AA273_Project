@@ -222,7 +222,8 @@ K = \begin{bmatrix}
 
 With the ArUco marker simulated with a 10 meter side length in Blender, the origin of the marker's frame as well as its coordinates are known in 3D space. 
 The 2D pixel coordinates of the origin and corners are found by OpenCV's detection function. 
-The 3D known coordinates coupled with the 2D pixel coordinates allow the PnP
+The 3D known coordinates coupled with the 2D pixel coordinates allow the PnP problem to be solved with OpenCV's pose estimation function, yielding the camera pose.
+The camera pose is then transformed into 
 
 
 \subsection{Attitude filtering}
@@ -242,15 +243,21 @@ The prediction step is expressed as follows:
      & = A_{t} 
      \begin{bmatrix}
          \delta p_{t|t} \\ \omega_{t|t}
-     \end{bmatrix} + B_t u_t
+     \end{bmatrix} + B_t u_t 
+    \Simga_{t|t+1} = A_t \Simga_{t|t+1}  
 \end{align*}
 
 The update step is expressed as follows:
 %
 \begin{align*}
     \begin{bmatrix}
+         \delta p_{t+1|t+1} \\ \omega_{t+1|t+1}
+     \end{bmatrix}
+     & = 
+     \begin{bmatrix}
          \delta p_{t|t+1} \\ \omega_{t|t+1}
-     \end{bmatrix} = 
+     \end{bmatrix} 
+     \\
     q_{t+1|t+1} & = \delta q(\delta p_{t}) \circ q_{t|t+1}
 \end{align*}
 
