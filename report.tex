@@ -7,269 +7,285 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage{optidef}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
 
-\title{Vision-Based Pose Estimation for Booster Landing\\
-\thanks{Identify applicable funding agency here. If none, delete this.}
+\title{Vision-Based Pose Estimation for Launch Vehicle Booster Landing\\
 }
 
 \author{\IEEEauthorblockN{Anshuk Chigullapalli}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
+\IEEEauthorblockA{\textit{Aeronautics and Astronautics} \\
+\textit{Stanford University}\\
+Stanford, United States \\
+anshuk@stanford.edu}
 \and
 \IEEEauthorblockN{Kristopher Riordan}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
+\IEEEauthorblockA{\textit{Aeronautics and Astronautics} \\
+\textit{Stanford University}\\
+Stanford, United States \\
+riordk@stanford.edu}
 \and
 \IEEEauthorblockN{Yuji Takubo}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
+\IEEEauthorblockA{\textit{Aeronautics and Astronautics} \\
+\textit{Stanford University}\\
+Stanford, United States \\
+ytakubo@stanford.edu}
 \and
 \IEEEauthorblockN{Faress Zwain}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
+\IEEEauthorblockA{\textit{Aeronautics and Astronautics} \\
+\textit{Stanford University}\\
+Stanford, United States \\
+fzwain@stanford.edu}
 }
 
 \maketitle
 
 \begin{abstract}
-asdfasdfasdfasdfsadf
+A vision-based attitude estimation algorithm for a rocket booster landing is developed. 
+In a 3D-rendered world, an AprilTag (ArUcro Marker) placed at the launchpad is utilized as a key landmark of feature detection and matching. 
+The measurement is then processed to update a state estimation using the multiplicative extended Kalman filter, where the rotational uncertainty is expressed as a covariance matrix of modified Rodrigues parameters. 
+The developed algorithm is validated via a comparison with the IMU-based pose estimation as well as the combined measurement, and the performance of each estimation system is analyzed.  
 \end{abstract}
 
-\begin{IEEEkeywords}
-component, formatting, style, styling, insert
-\end{IEEEkeywords}
+% \begin{IEEEkeywords}
+% Pose estimation, Terrain-Relative Navigation, 
+% \end{IEEEkeywords}
 
 \section{Introduction}
-This document is a model and instructions for \LaTeX.
-Please observe the conference page limits. 
 
-@Faress, add stuff here for literature review:
+Reusable rocket boosters are an active point of development in the launch vehicle industry. 
+Re-using rocket boosters (i.e. the first stage of a launch vehicle) can significantly reduce the cost of space launch services and increase launch cadence \cite{shotwell2021space}. 
+Through these benefits, reusable rockets also make technologies such as in-orbit propellant transfer and long-duration Mars missions economically viable; reliable reusability is a cornerstone of space exploration.
+
+A demonstrated method of retrieving orbital-class boosters is vertical landing with retro-propulsion. 
+This has been demonstrated by SpaceX's Falcon 9 and Falcon Heavy (orbital booster) and Blue Origin's New Shepard (sub-orbital booster) \cite{maggio2023vision} \cite{blackmore2016autonomous}. 
+As the industry works towards vertical landings with higher precision, such as landing the booster back at the launch pad, a stronger requirement on precise and robust navigation and state estimation algorithm during the final stages of this landing maneuver is desired \cite{blackmore2016autonomous}.
+
+Vision-based estimation has already been demonstrated in space missions such as the Mars 2020 mission \cite{johnson2022mars} or IM-1 lunar lander \cite{christian2021image}, which utilized terrain relative navigation (TRN) for their position estimation and precise autonomous landing. 
+
+This paper evaluates the effectiveness and applicability of the vision-based pose estimation to the booster landing problem. 
+One differentiation of the booster landing compared to the planetary landing problem is that we have exact prior knowledge of the landing site and surroundings, while a sub-meter level of navigation accuracy is desired for the pin-point landing. 
+In this paper, we further simplify the problem by placing an AprilTag \cite{kallwies2020determining} as a defining landmark for the landing site. 
+The pose of the booster is determined by comparing existing onboard camera footage facing the landing pad and pointing to known features at the landing site.
+We then process a vision-based pose estimation algorithm with generic IMU-based pose estimation using an Extended Kalman Filter (EKF) to get an improved estimate.  
 
 
-\section{Ease of Use}
+\section{Related Work}
 
-\subsection{Maintaining the Integrity of the Specifications}
+Image-based localization using cameras can be an effective replacement for time-based filters for highly dynamic systems can result in a loss of information or blur in the dynamics \cite{mair2009efficient}. 
+Although a single calibrated camera may achieve an accurate localization, it is best for low-noise measurements with close-range applications.
+Reference \cite{mair2009efficient} uses a modified Kanade-Lucas-Tomasi (KLT) tracker for feature tracking and a vision-based GPS for self-estimating the camera poses. 
+The image scaling is first initialized using a known feature dimension, structure from motion (SfM), or a stereo camera system with triangulation; then the features are managed at each time step. The algorithm determines whether enough features are trackable to continue high-accuracy pose estimation; if not, the system loops back to KLT to re-initialize features for tracking. 
+Experimental results and accuracy comparisons between different models are discussed in more detail \cite{mair2009efficient}.
 
-The IEEEtran class file is used to format your paper and style the text. All margins, 
-column widths, line spaces, and text fonts are prescribed; please do not 
-alter them. You may note peculiarities. For example, the head margin
-measures proportionately more than is customary. This measurement 
-and others are deliberate, using specifications that anticipate your paper 
-as one part of the entire proceedings, and not as an independent document. 
-Please do not revise any of the current designations.
+AprilTags are square tags with distinct monochrome patterns that are commonly used for landmarks of feature detection and estimation algorithms. 
+Detailed real-time pose estimation, tracking, and localization in GPS-denied environments and comparisons of the size, accuracy, and speed of several AprilTag implementation algorithms are discussed in Ref. \cite{tola2021real}. 
+The high-level design includes grayscale, Gaussian smoothing, gradient magnitude \& direction, and edge detection \& clustering. 
+Once a set of candidate quads (four-sided shapes made up of the detected edge segments) is generated, the camera extrinsics problem is solved to extract a rotation and translation of the camera in relation to a frame grounded in the AprilTag itself \cite{olson2011apriltag}. 
 
-\section{Prepare Your Paper Before Styling}
-Before you begin to format your paper, first write and save the content as a 
-separate text file. Complete all content and organizational editing before 
-formatting. Please note sections \ref{AA}--\ref{SCM} below for more information on 
-proofreading, spelling and grammar.
+Due to the variety of different AprilTag detection libraries available, a research project was conducted to compare the localization accuracy of four commonly used, open-source AprilTag detection libraries \cite{kallwies2020determining}. 
+Using a 3D camera simulation from OpenGL, the researchers tested each library's localization accuracy with variable parameters such as tag size, viewing angle, tag rotations, and border occlusion. The authors also explain different localization accuracy improvement methods including edge refinement, corner refinement, tag extensions, and filtering out poor tag detections. 
+The conclusion states that ArUco OpenCV is best for computational speed, AprilTags C++ is best for accuracy, and AprilTags 3 is the best for a middle ground \cite{kallwies2020determining}. 
 
-Keep your text and graphic files separate until after the text has been 
-formatted and styled. Do not number text heads---{\LaTeX} will do that 
-for you.
+Similar, but opposite to our project, robot localization using images of a moving object has proven to be a successful localization method \cite{lee2003localization}. 
+The two main methods are position estimation using image projection of the moving target and then correction through the use of a Kalman filter. 
+The simulation and experiments show the Kalman filter's ability to recursively correct the position estimation after an initial estimate from the image projection \cite{lee2003localization}. 
+Although the camera frame is fixed and the target is moving relative to the camera, the same algorithms are applicable if the camera is moving relative to a fixed target frame. 
 
-\subsection{Abbreviations and Acronyms}\label{AA}
-Define abbreviations and acronyms the first time they are used in the text, 
-even after they have been defined in the abstract. Abbreviations such as 
-IEEE, SI, MKS, CGS, ac, dc, and rms do not have to be defined. Do not use 
-abbreviations in the title or heads unless they are unavoidable.
+In the case of having no AprilTags, utilizing a known map of generic terrain features becomes necessary. Camera-based TRN falls into a subset of visual odometry problems that estimate an ego-motion and pose by moving camera images \cite{nister2004visual, scaramuzza2011visual}, which is a variant of the structure from motion (SfM) problem.
+Since it may not require any prior information about the landscape and the trajectory motion but estimates the agent's odometry purely based on iterative feature-matching and outlier rejections, successful real-world online implementations has been demonstrated \cite{christian2021image}.
 
-\subsection{Units}
-\begin{itemize}
-\item Use either SI (MKS) or CGS as primary units. (SI units are encouraged.) English units may be used as secondary units (in parentheses). An exception would be the use of English units as identifiers in trade, such as ``3.5-inch disk drive''.
-\item Avoid combining SI and CGS units, such as current in amperes and magnetic field in oersteds. This often leads to confusion because equations do not balance dimensionally. If you must use mixed units, clearly state the units for each quantity that you use in an equation.
-\item Do not mix complete spellings and abbreviations of units: ``Wb/m\textsuperscript{2}'' or ``webers per square meter'', not ``webers/m\textsuperscript{2}''. Spell out units when they appear in text: ``. . . a few henries'', not ``. . . a few H''.
-\item Use a zero before decimal points: ``0.25'', not ``.25''. Use ``cm\textsuperscript{3}'', not ``cc''.)
-\end{itemize}
+The Kalman Filter and its variations are the most common sequential state estimation techniques. 
+When using a Kalman Filter to estimate the attitude of a rigid body, the state space must be chosen carefully. 
+Although quaternions are a typical attitude representation for spacecraft due to the lack of singularities, a unitary norm constraint ($\|q\|=1$) spawns difficulty in the standard Kalman Filter formulation \cite{markley2003mekf}. 
+One solution for this issue is a multiplicative Kalman filter (MKF), which utilizes a state space that is composed of the error rotation between the belief state and an updated attitude. 
+This error rotation can be chosen to be one of several unconstrained attitude parameterizations (e.g. Gibbs vector, Modified Rodrigues Parameters, Euler angles). If chosen well, this parameterization yields a simple, first-order formulation of the Kalman Filter \cite{markley2003mekf}.
 
-\subsection{Equations}
-Number equations consecutively. To make your 
-equations more compact, you may use the solidus (~/~), the exp function, or 
-appropriate exponents. Italicize Roman symbols for quantities and variables, 
-but not Greek symbols. Use a long dash rather than a hyphen for a minus 
-sign. Punctuate equations with commas or periods when they are part of a 
-sentence, as in:
-\begin{equation}
-a+b=\gamma\label{eq}
-\end{equation}
+The guidance problem during rocket descent involves the generation of valid trajectories subject to physically imposed and designer imposed constraints. This problem can be formulated as a convex optimization problem using lossless convexification to eliminate pervasive non-convex dynamics and constraints \cite{malyuta2021convex}. Additionally, assuming that the attitude control dynamics operate on a much faster time-scale than the translational dynamics, the trajectory can be simplified to that of a point mass with three degrees of freedom for which the thrust vector dictates the attitude. Using these simplifications and discretizing the dynamics allows for simple and fast trajectory generation that can be done on-board the descent vehicle, often with just a single call of a convex solver \cite{malyuta2021convex}. 
 
-Be sure that the 
-symbols in your equation have been defined before or immediately following 
-the equation. Use ``\eqref{eq}'', not ``Eq.~\eqref{eq}'' or ``equation \eqref{eq}'', except at 
-the beginning of a sentence: ``Equation \eqref{eq} is . . .''
+\section{Methodology}
 
-\subsection{\LaTeX-Specific Advice}
+We propose a fully integrated vision-based pose estimation package that takes in camera information and, utilizing existing map information of the landing site, determines the pose of the vehicle through feature detection and matching.
 
-Please use ``soft'' (e.g., \verb|\eqref{Eq}|) cross references instead
-of ``hard'' references (e.g., \verb|(1)|). That will make it possible
-to combine sections, add equations, or change the order of figures or
-citations without having to go through the file line by line.
+This will be implemented in a simulated environment that combines Blender, a popular 3D graphics tool, and Python. A pre-determined landing trajectory is generated using the methods described in Section \ref{sec:dynamics}. Then, we acquire a sequence of noised-images from a simulated camera in Blender that follows that pre-determined trajectory. These sequence of images are used in the pose-estimation problem. To simplify the problem, the pose estimates are not used in the loop with guidance and control problem. The vision-based pose estimate will then be fused with a simulated IMU pose estimate, to determine if the added visual odometry information improves the final result. Figure \ref{fig:flow_chart} showcases the information flow of the proposed work.
 
-Please don't use the \verb|{eqnarray}| equation environment. Use
-\verb|{align}| or \verb|{IEEEeqnarray}| instead. The \verb|{eqnarray}|
-environment leaves unsightly spaces around relation symbols.
+% insert figure here
+\begin{figure}[htbp] \label{fig:flow_chart}
+    \centerline{\includegraphics[width=0.49\textwidth]{273_project_flow.png}}
+    \caption{Proposed vision-based estimation experiment architecture.}
+    \label{fig:sys_arch}
+\end{figure}
+% insert figure here
 
-Please note that the \verb|{subequations}| environment in {\LaTeX}
-will increment the main equation counter even when there are no
-equation numbers displayed. If you forget that, you might write an
-article in which the equation numbers skip from (17) to (20), causing
-the copy editors to wonder if you've discovered a new method of
-counting.
+\subsection{Vehicle Dynamics and Trajectory Generation} \label{sec:dynamics}
 
-{\BibTeX} does not work by magic. It doesn't get the bibliographic
-data from thin air but from .bib files. If you use {\BibTeX} to produce a
-bibliography you must send the .bib files. 
+The translational trajectory of the rocket will be generated using a 3-DOF model of the dynamics, treating the vehicle as a point mass. Imposed on the model will be discrete state transition constraints, a pointing constraint, a glide angle constraint, and initial and final conditions set. 
+Any non-convexities will be handled using lossless convexification. 
+A fuel-optimal trajectory will then be solved for using a convex solver such as CVXPY.
+This trajectory will encode a time history of the rocket's position in 3D space along with a thrust vector. It is assumed that the attitude of the booster is equivalent to the thrust vector direction.
+From this, a time history of poses will be generated, from which an approximation of instantaneous angular rates can be computed. 
+Thus, a full state history of the rocket is made available to feed into the simulated landing environment.
+The same tools used on-board landing vehicles to plan and perform powered descent guidance were used to generate a nominal simulation trajectory.
+This is done by simplifying the rocket dynamics into a 3-DOF problem with a point mass being acted on by a thrust vector.
+The treatment of this problem in continuous time is discussed in detail in Ref. \cite{malyuta2021convex}.
+Several constraints in the original formulation of the problem are either non-convex or require changes of variables in order to be DCP compliant.
+This leads to what is denoted as Problem 104 in Ref. \cite{malyuta2021convex}, which is cast in continuous time. After discretizing the problem, it can be formulated as is shown in Problem \ref{eq:convex_traj_gen}.
 
-{\LaTeX} can't read your mind. If you assign the same label to a
-subsubsection and a table, you might find that Table I has been cross
-referenced as Table IV-B3. 
+\begin{mini!}|s|[2]<b>{\xi_0, \hdots , \xi_K}{\sum_{k=1}^{K}{\xi_k }\label{eq:objective}}{\label{eq:convex_traj_gen}}{}
+\addConstraint{\vec{r}_{k+1}}{= \vec{r}_k + \frac{\delta t}{2} \left( \vec{v}_k + \vec{v}_{k+1} \right)}
+\addConstraint{\vec{v}_{k+1}}{= \vec{v}_k + \delta t \left( \vec{u}_k - g\hat{e}_z \right)}
+\addConstraint{z_{k+1}}{= z_k - \delta t \alpha \xi_k}
+\addConstraint{\mu_{\text{min},k} \left( 1 - \delta z_k + \frac{1}{2} {\delta z_k}^2 \right)}{\leq \xi_k}
+\addConstraint{\mu_{\text{max},k} \left( 1 - \delta z_k \right)}{\geq \xi_k}
+\addConstraint{\Vert \vec{u}_k \Vert }{\leq \xi_k}
+\addConstraint{\vec{u}_k \hat{e}_z^T}{\geq \xi_k \cos{\gamma_{p,k}}}
+\addConstraint{\vec{r}_k^T \hat{e}_z}{\geq \gamma_{gs} \Vert H_{gs} \vec{r}_k \Vert}
+\addConstraint{\ln{(m_{\text{dry}})}}{\leq z_K}
+\addConstraint{z_1}{= \ln{(m_{\text{wet}})}}
+\addConstraint{z_{l,k}}{\leq z_k}
+\addConstraint{z_k}{\leq z_{u,k}}
+\addConstraint{\vec{r}_1}{= \vec{r}_0}
+\addConstraint{\vec{r}_K}{= \vec{r}_f}
+\addConstraint{\vec{v}_1}{= \vec{v}_0}
+\addConstraint{\vec{v}_K}{= 0},
+\end{mini!}
 
-{\LaTeX} does not have precognitive abilities. If you put a
-\verb|\label| command before the command that updates the counter it's
-supposed to be using, the label will pick up the last counter to be
-cross referenced instead. In particular, a \verb|\label| command
-should not go before the caption of a figure or a table.
+The design variables are defined as follows:
 
-Do not use \verb|\nonumber| inside the \verb|{array}| environment. It
-will not stop equation numbers inside \verb|{array}| (there won't be
-any anyway) and it might stop a wanted equation number in the
-surrounding equation.
+\begin{eqnarray*}
+    \xi_k \triangleq \frac{\sigma_k}{m_k} & \vec{u}_k \triangleq \vec{T}_k & z_k \triangleq \ln{(m_k)}
+\end{eqnarray*}
 
-\subsection{Some Common Mistakes}\label{SCM}
-\begin{itemize}
-\item The word ``data'' is plural, not singular.
-\item The subscript for the permeability of vacuum $\mu_{0}$, and other common scientific constants, is zero with subscript formatting, not a lowercase letter ``o''.
-\item In American English, commas, semicolons, periods, question and exclamation marks are located within quotation marks only when a complete thought or name is cited, such as a title or full quotation. When quotation marks are used, instead of a bold or italic typeface, to highlight a word or phrase, punctuation should appear outside of the quotation marks. A parenthetical phrase or statement at the end of a sentence is punctuated outside of the closing parenthesis (like this). (A parenthetical sentence is punctuated within the parentheses.)
-\item A graph within a graph is an ``inset'', not an ``insert''. The word alternatively is preferred to the word ``alternately'' (unless you really mean something that alternates).
-\item Do not use the word ``essentially'' to mean ``approximately'' or ``effectively''.
-\item In your paper title, if the words ``that uses'' can accurately replace the word ``using'', capitalize the ``u''; if not, keep using lower-cased.
-\item Be aware of the different meanings of the homophones ``affect'' and ``effect'', ``complement'' and ``compliment'', ``discreet'' and ``discrete'', ``principal'' and ``principle''.
-\item Do not confuse ``imply'' and ``infer''.
-\item The prefix ``non'' is not a word; it should be joined to the word it modifies, usually without a hyphen.
-\item There is no period after the ``et'' in the Latin abbreviation ``et al.''.
-\item The abbreviation ``i.e.'' means ``that is'', and the abbreviation ``e.g.'' means ``for example''.
-\end{itemize}
-An excellent style manual for science writers is \cite{b7}.
+Parameters such as wet-mass, dry-mass, and specific impulse were chosen to be representative of a rocket similar in size and performance to the first stage of the Falcon 9.
+These are listed below.
 
-\subsection{Authors and Affiliations}
-\textbf{The class file is designed for, but not limited to, six authors.} A 
-minimum of one author is required for all conference articles. Author names 
-should be listed starting from left to right and then moving down to the 
-next line. This is the author sequence that will be used in future citations 
-and by indexing services. Names should not be listed in columns nor group by 
-affiliation. Please keep your affiliations as succinct as possible (for 
-example, do not differentiate among departments of the same organization).
+\begin{eqnarray*}
+    I_{sp} = 282 \text{ s} & m_{wet} = 42.2 \cdot 10^3 \text{ kg} & m_{dry} = 22.2 \cdot 10^3 \text{ kg} \\
+    
+\end{eqnarray*}
 
-\subsection{Identify the Headings}
-Headings, or heads, are organizational devices that guide the reader through 
-your paper. There are two types: component heads and text heads.
+For the purposes of this analysis, no process noise has been injected onto the nominal trajectory. Therefore, the true state of the system is equivalent to the nominal trajectory solution. 
 
-Component heads identify the different components of your paper and are not 
-topically subordinate to each other. Examples include Acknowledgments and 
-References and, for these, the correct style to use is ``Heading 5''. Use 
-``figure caption'' for your Figure captions, and ``table head'' for your 
-table title. Run-in heads, such as ``Abstract'', will require you to apply a 
-style (in this case, italic) in addition to the style provided by the drop 
-down menu to differentiate the head from the text.
-
-Text heads organize the topics on a relational, hierarchical basis. For 
-example, the paper title is the primary text head because all subsequent 
-material relates and elaborates on this one topic. If there are two or more 
-sub-topics, the next level head (uppercase Roman numerals) should be used 
-and, conversely, if there are not at least two sub-topics, then no subheads 
-should be introduced.
-
-\subsection{Figures and Tables}
-\paragraph{Positioning Figures and Tables} Place figures and tables at the top and 
-bottom of columns. Avoid placing them in the middle of columns. Large 
-figures and tables may span across both columns. Figure captions should be 
-below the figures; table heads should appear above the tables. Insert 
-figures and tables after they are cited in the text. Use the abbreviation 
-``Fig.~\ref{fig}'', even at the beginning of a sentence.
-
-\begin{table}[htbp]
-\caption{Table Type Styles}
-\begin{center}
-\begin{tabular}{|c|c|c|c|}
-\hline
-\textbf{Table}&\multicolumn{3}{|c|}{\textbf{Table Column Head}} \\
-\cline{2-4} 
-\textbf{Head} & \textbf{\textit{Table column subhead}}& \textbf{\textit{Subhead}}& \textbf{\textit{Subhead}} \\
-\hline
-copy& More table copy$^{\mathrm{a}}$& &  \\
-\hline
-\multicolumn{4}{l}{$^{\mathrm{a}}$Sample of a Table footnote.}
-\end{tabular}
-\label{tab1}
-\end{center}
-\end{table}
-
-\begin{figure}[htbp]
-\centerline{\includegraphics{fig1.png}}
-\caption{Example of a figure caption.}
-\label{fig}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{rocket_traj.png}
+    \caption{Reference (True) Landing trajectory with camera attitude.}
+    \label{fig:enter-label}
 \end{figure}
 
-Figure Labels: Use 8 point Times New Roman for Figure labels. Use words 
-rather than symbols or abbreviations when writing Figure axis labels to 
-avoid confusing the reader. As an example, write the quantity 
-``Magnetization'', or ``Magnetization, M'', not just ``M''. If including 
-units in the label, present them within parentheses. Do not label axes only 
-with units. In the example, write ``Magnetization (A/m)'' or ``Magnetization 
-\{A[m(1)]\}'', not just ``A/m''. Do not label axes with a ratio of 
-quantities and units. For example, write ``Temperature (K)'', not 
-``Temperature/K''.
 
-\section*{Acknowledgment}
+\subsection{Simulation Environment}
+Since it is not feasible to have a physical replica of a vehicle following a booster-like trajectory, a simulation environment is created in Blender to gather images from the perspective of the camera mounted on the booster. The simulated environment has an approximate landing pad and tower, along with a floating camera.
 
-The preferred spelling of the word ``acknowledgment'' in America is without 
-an ``e'' after the ``g''. Avoid the stilted expression ``one of us (R. B. 
-G.) thanks $\ldots$''. Instead, try ``R. B. G. thanks$\ldots$''. Put sponsor 
-acknowledgments in the unnumbered footnote on the first page.
+The Blender API allows us tis used to command this floating camera to specific poses in the Blender environment. WI
+The pre-determined trajectory timeseries from Section \ref{sec:dynamics} is programmed in Python. The 
+At each time step, the simulated pose of the rocket is used as the pose of the camera in Blender. This connection between the Python script and Blender is done using the Blender Python API. The generated camera images are fed back to the Python script, where they will be processed to gather pose estimates.  
 
-\section*{References}
+% insert figure here
+\begin{figure}[htbp] \label{fig:flow_chart}
+    \centerline{\includegraphics[width=0.3\textwidth]{april_tag_on_booster.png}}
+    \caption{Example camera output of a simulated environment in Blender that includes a landing tower with an AprilTag.}
+    \label{fig:sys_arch}
+\end{figure}
+% insert figure here
 
-Please number citations consecutively within brackets \cite{b1}. The 
-sentence punctuation follows the bracket \cite{b2}. Refer simply to the reference 
-number, as in \cite{b3}---do not use ``Ref. \cite{b3}'' or ``reference \cite{b3}'' except at 
-the beginning of a sentence: ``Reference \cite{b3} was the first $\ldots$''
+\subsection{Image Processing}
 
-Number footnotes separately in superscripts. Place the actual footnote at 
-the bottom of the column in which it was cited. Do not put footnotes in the 
-abstract or reference list. Use letters for table footnotes.
+To simplify the problem, the assumption is made that the landing pad will have a feature-rich ArUco marker, with known feature dimensions (for the real problem, this will just be extended to utilize the 3-dimensional features of the landing pad itself). 
+The generated image of the environment (that includes the ArUco marker) at each time step is used to extract the camera's pose. 
+With the fully defined camera intrinsic properties and the perfect knowledge of the location of ArUco features, extracting the pose is reduced to solving the camera extrinsics problem. 
+The OpenCV library is used for the feature detection and matching algorithm for this implementation.
+To briefly discuss the specifics of the OpenCV library's functions, first we used a built in function to detect the ArUco marker's corners and local coordinate frame. 
+We confirm that the marker detection was done correctly by plotting the corners and axes on each image. 
+The figure below illustrates the detected ArUco marker for a specific time step in our rocket's trajectory.
 
-Unless there are six authors or more give all authors' names; do not use 
-``et al.''. Papers that have not been published, even if they have been 
-submitted for publication, should be cited as ``unpublished'' \cite{b4}. Papers 
-that have been accepted for publication should be cited as ``in press'' \cite{b5}. 
-Capitalize only the first word in a paper title, except for proper nouns and 
-element symbols.
+% insert figure here
+\begin{figure}[ht!] 
+    \centerline{\includegraphics[width=0.4\textwidth]{detectedMarker.png}}
+    \caption{Detected ArUco Marker with Defined Corners and Coordinate Frame.}
+    \label{fig:marker_}
+\end{figure}
+% insert figure here
 
-For papers published in translation journals, please give the English 
-citation first, followed by the original foreign-language citation \cite{b6}.
+With camera pose now known relative to the world frame as well as relative to the body frame of the rocket, we can extract the rocket pose. 
+The camera intrinsic matrix was generated using defined parameters from the blender simulation.
 
-\begin{thebibliography}{00}
-\bibitem{b1} G. Eason, B. Noble, and I. N. Sneddon, ``On certain integrals of Lipschitz-Hankel type involving products of Bessel functions,'' Phil. Trans. Roy. Soc. London, vol. A247, pp. 529--551, April 1955.
-\bibitem{b2} J. Clerk Maxwell, A Treatise on Electricity and Magnetism, 3rd ed., vol. 2. Oxford: Clarendon, 1892, pp.68--73.
-\bibitem{b3} I. S. Jacobs and C. P. Bean, ``Fine particles, thin films and exchange anisotropy,'' in Magnetism, vol. III, G. T. Rado and H. Suhl, Eds. New York: Academic, 1963, pp. 271--350.
-\bibitem{b4} K. Elissa, ``Title of paper if known,'' unpublished.
-\bibitem{b5} R. Nicole, ``Title of paper with only first word capitalized,'' J. Name Stand. Abbrev., in press.
-\bibitem{b6} Y. Yorozu, M. Hirano, K. Oka, and Y. Tagawa, ``Electron spectroscopy studies on magneto-optical media and plastic substrate interface,'' IEEE Transl. J. Magn. Japan, vol. 2, pp. 740--741, August 1987 [Digests 9th Annual Conf. Magnetics Japan, p. 301, 1982].
-\bibitem{b7} M. Young, The Technical Writer's Handbook. Mill Valley, CA: University Science, 1989.
-\end{thebibliography}
-\vspace{12pt}
-\color{red}
-IEEE conference templates contain guidance text for composing and formatting conference papers. Please ensure that all template text is removed from your conference paper prior to submission to the conference. Failure to remove the template text from your paper may result in your paper not being published.
+\[
+K = \begin{bmatrix}
+424.3378 & 0 & 424.0 \\
+0 & 424.3378 & 240.0 \\
+0 & 0 & 1 \\
+\end{bmatrix}
+\]
+
+With the ArUco marker simulated with a 10 meter side length in Blender, the origin of the marker's frame as well as its coordinates are known in 3D space. 
+The 2D pixel coordinates of the origin and corners are found by OpenCV's detection function. 
+The 3D known coordinates coupled with the 2D pixel coordinates allow the PnP problem to be solved with OpenCV's pose estimation function, yielding the camera pose.
+The camera pose is then transformed into 
+
+
+\subsection{Attitude filtering}
+
+The filtering of the rotational motion is executed by a multiplicative extended Kalman filter (MEKF) \cite{markley2003mekf} by choosing a state vector composed of pose error (i.e., error Modified Rodrigues Parameters (MRPs)) and angular velocity in a body frame.
+As an error MRPs do not have a unitary norm constraint like a quaternion, computation of the covariance matrix in MRP space simplifies the computation. 
+The kinematics of the error MRPs are linearized along the reference quaternion history (i.e., $\delta \boldsymbol{p}^{-}(t) = 0$), where the a posteriori estimate of the error MRP is then used to update the reference quaternion ($\boldsymbol{q}_{\text{ref}}^{k+1}(t) = \delta \boldsymbol{q}(\delta \boldsymbol{p}^{+}(t)) \circ \boldsymbol{q}_{\text{ref}}^k(t)$). 
+
+
+The prediction step is expressed as follows:
+%
+\begin{align*}
+    q_{t|t+1} & = f(q_{t|t}, \omega_{t|t}, u_t) \\
+     \begin{bmatrix}
+         \delta p_{t|t+1} \\ \omega_{t|t+1}
+     \end{bmatrix} 
+     & = A_{t} 
+     \begin{bmatrix}
+         \delta p_{t|t} \\ \omega_{t|t}
+     \end{bmatrix} + B_t u_t 
+    \Simga_{t|t+1} = A_t \Simga_{t|t+1}  
+\end{align*}
+
+The update step is expressed as follows:
+%
+\begin{align*}
+    \begin{bmatrix}
+         \delta p_{t+1|t+1} \\ \omega_{t+1|t+1}
+     \end{bmatrix}
+     & = 
+     \begin{bmatrix}
+         \delta p_{t|t+1} \\ \omega_{t|t+1}
+     \end{bmatrix} 
+     \\
+    q_{t+1|t+1} & = \delta q(\delta p_{t}) \circ q_{t|t+1}
+\end{align*}
+
+After the update, 
+
+\subsection{Result Validation and Sensor Fusion}
+To validate the camera-based pose estimate and determine whether it is a viable method for pose estimation for the booster landing problem, the visual estimate is benchmarked against inertial navigation, i.e. pose estimation using data from an Inertial Measurement Unit. 
+As inertial navigation is the current standard method for pose estimation on launch vehicles, it would be useful to validate whether fusing the vision-based pose estimate with the inertial pose estimate provides an improved final result. 
+
+
+\section{Results}
+
+\subsection{Visual Navigation Results}
+
+\subsection{Vision Denied Case}
+
+\subsection{Vision Enhanced Case}
+
+
+
+\section{Conclusion}
+
+% \section*{Acknowledgment}
+
+
+
+
+\bibliographystyle{ieeetr}
+\bibliography{reference}
 
 \end{document}
