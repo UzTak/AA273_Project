@@ -44,7 +44,7 @@ fzwain@stanford.edu}
 
 \begin{abstract}
 A vision-based attitude estimation algorithm for a rocket booster landing is developed. 
-In a 3D-rendered world, an AprilTag (ArUcro Marker) placed at the launchpad is utilized as a key landmark of feature detection and matching. 
+In a 3D-rendered world, an ArUcro Marker (similar to an AprilTag) placed at the launchpad is utilized as a key landmark of feature detection and matching. 
 The measurement is then processed to update a state estimation using the multiplicative extended Kalman filter, where the rotational uncertainty is expressed as a covariance matrix of modified Rodrigues parameters. 
 The developed algorithm is validated via a comparison with the IMU-based pose estimation as well as the combined measurement, and the performance of each estimation system is analyzed.  
 \end{abstract}
@@ -121,17 +121,13 @@ This will be implemented in a simulated environment that combines Blender, a pop
 
 \subsection{Vehicle Dynamics and Trajectory Generation} \label{sec:dynamics}
 
-The translational trajectory of the rocket will be generated using a 3-DOF model of the dynamics, treating the vehicle as a point mass. Imposed on the model will be discrete state transition constraints, a pointing constraint, a glide angle constraint, and initial and final conditions set. 
-Any non-convexities will be handled using lossless convexification. 
-A fuel-optimal trajectory will then be solved for using a convex solver such as CVXPY.
-This trajectory will encode a time history of the rocket's position in 3D space along with a thrust vector. It is assumed that the attitude of the booster is equivalent to the thrust vector direction.
-From this, a time history of poses will be generated, from which an approximation of instantaneous angular rates can be computed. 
-Thus, a full state history of the rocket is made available to feed into the simulated landing environment.
-The same tools used on-board landing vehicles to plan and perform powered descent guidance were used to generate a nominal simulation trajectory.
-This is done by simplifying the rocket dynamics into a 3-DOF problem with a point mass being acted on by a thrust vector.
+The translational trajectory of the rocket is generated using a 3-DOF model of the dynamics, treating the vehicle as a point mass. Imposed on the model are discrete state transition constraints, a pointing constraint, a glide-slope constraint, a pointing constraint, and initial and final conditions set. 
+All non-convexities are handled using lossless convexification as described in Ref. \cite{malyuta2021convex}. 
+Solving the problem using CVXPY yields a fuel optimal trajectory, which encodes a time history of the rocket's position in 3D space along with a thrust vector. 
+
 The treatment of this problem in continuous time is discussed in detail in Ref. \cite{malyuta2021convex}.
 Several constraints in the original formulation of the problem are either non-convex or require changes of variables in order to be DCP compliant.
-This leads to what is denoted as Problem 104 in Ref. \cite{malyuta2021convex}, which is cast in continuous time. After discretizing the problem, it can be formulated as is shown in Problem \ref{eq:convex_traj_gen}.
+This leads to what is denoted as Problem 104 in Ref. \cite{malyuta2021convex}, which is cast in continuous time. Discretizing this problem yields what is defined below as Problem \ref{eq:convex_traj_gen}.
 
 \begin{mini!}|s|[2]<b>{\xi_0, \hdots , \xi_K}{\sum_{k=1}^{K}{\xi_k }\label{eq:objective}}{\label{eq:convex_traj_gen}}{}
 \addConstraint{\vec{r}_{k+1}}{= \vec{r}_k + \frac{\delta t}{2} \left( \vec{v}_k + \vec{v}_{k+1} \right)}
@@ -153,22 +149,78 @@ This leads to what is denoted as Problem 104 in Ref. \cite{malyuta2021convex}, w
 \end{mini!}
 
 The design variables are defined as follows:
-
 \begin{eqnarray*}
     \xi_k \triangleq \frac{\sigma_k}{m_k} & \vec{u}_k \triangleq \vec{T}_k & z_k \triangleq \ln{(m_k)}
 \end{eqnarray*}
 
-Parameters such as wet-mass, dry-mass, and specific impulse were chosen to be representative of a rocket similar in size and performance to the first stage of the Falcon 9.
-These are listed below.
+Here, for the $k$-th time step, $\vec{T}_k$ is the thrust vector, $m_k$ is the mass of the rocket, and $\sigma_k$ is the slack variable that corresponds to the norm of the thrust vector.
 
+Static parameters such as wet-mass, dry-mass, and specific impulse were chosen to be representative of a rocket similar in size and performance to the first stage of the Falcon 9.
+All of these quantities are listed below.
 \begin{eqnarray*}
     I_{sp} = 282 \text{ s} & m_{wet} = 42.2 \cdot 10^3 \text{ kg} & m_{dry} = 22.2 \cdot 10^3 \text{ kg} \\
-    
+    \gamma_{gs} = 0.5 & g = 9.807 \text{ m/s\textsuperscript{2}} & \delta t = 0.1 \text{ s} \\
+    t_f = 8 \text{ s} & F_{max} = 854 \text{ kN} & F_{min} = 0 \text{ kN}
 \end{eqnarray*}
 
-For the purposes of this analysis, no process noise has been injected onto the nominal trajectory. Therefore, the true state of the system is equivalent to the nominal trajectory solution. 
+From these user defined parameters, the following were calculated.
+\begin{eqnarray*}
+    \alpha \triangleq \frac{1}{I_{sp} g} = 3.6 \cdot 10^{-4} \text{ s/m} & K \triangleq t_f/\delta t = 80
+\end{eqnarray*}
 
-\begin{figure}
+The boundary conditions conditions for the 3-DOF are defined here.
+\begin{align*}
+    \vec{r}_0 &= \begin{bmatrix} 50 & 50 & 120 \end{bmatrix}^T \text{m} \\ 
+    \vec{v}_0 &= \begin{bmatrix} -10 & 0 & -10 \end{bmatrix}^T \text{ m/s} \\ 
+    \vec{r}_f &= \begin{bmatrix} 0 & 0 & 3 \end{bmatrix}^T \text{ m}
+\end{align*}
+
+The matrix referred to as $H_{gs}$, which is used to impose the glide-slope constraint is constructed as shown below.
+\begin{equation*}
+    H_{gs} = \begin{bmatrix}
+        1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 0
+    \end{bmatrix}
+\end{equation*}
+
+In addition to the static parameters, there are parameters that change at each time step. 
+First of which is the pointing constraint defined by $\gamma_{p,k}$, which linearly decreases from $\gamma_{p,1} = \pi/3$ rad to $\gamma_{p,K} = 0.001$ rad.
+The lower and upper limits respectively set on the mass flow rate are computed using the following equations.
+\begin{align*}
+    z_{l,k} & = \ln{(m_{wet} - \alpha F_{max} \delta t k)} \\
+    z_{u,k} & = \ln{(m_{wet} - \alpha F_{min} \delta t k)}
+\end{align*}
+
+From this definition, the term $\delta z_k = z_k - z_{l,k}$.
+Lastly, the parameters that are involved in bounding the thrust ouput from the rocket are computed as shown.
+\begin{align*}
+    \mu_{min,k} & = F_{min} \exp{(-z_{l,k})} \\
+    \mu_{max,k} & = F_{max} \exp{(-z_{l,k})}
+\end{align*}
+
+It is assumed that the attitude of the booster is deterministically related to the thrust vector direction, where the z-axis of the rocket body frame is anti-parallel always anti-parallel to the thrust direction. 
+The camera pose is chosen such that at each timestep, the z-axis of the camera's body frame (``camera direction") is along the line-of-sight, which is a vector that connects the center of mass of the booster and the landing site.
+These assumptions yield quaternion trajectories of the booster and camera attitude, respectively. 
+Based on them, the histories of the angular velocity are also recovered in discrete timesteps as follows, using two quaternions $q_t$ and $q_{t+1}$.
+%
+\begin{align}
+    \omega_t = \frac{2}{\Delta t}
+    \begin{bmatrix}
+        q_{t,0}q_{t+1,1} - q_{t,1}q_{t+1,0} - q_{t,2}q_{t+1,3} + q_{t,3}q_{t+1,2} \\
+        q_{t,0}q_{t+1,2} + q_{t,1}q_{t+1,3} - q_{t,2}q_{t+1,0} - q_{t,3}q_{t+1,1} \\
+        q_{t,0}q_{t+1,3} - q_{t,1}q_{t+1,2} + q_{t,2}q_{t+1,1} - q_{t,3}q_{t+1,0} \\
+    \end{bmatrix}
+\end{align}
+
+Once we have the angular velocity, our control input can be simply derived as 
+%
+\begin{align}
+    \Delta \omega_k = \omega_{k+1} - \omega_{k}
+\end{align}
+
+For the purposes of this analysis, no process noise has been injected onto the nominal trajectory. Therefore, the true state of the system is equivalent to the nominal trajectory solution.
+Furthermore, we assume that the relative attitude between the camera and the booster is perfectly known \textit{a priori}; in reality, this directly relates to the camera's slew maneuver on the booster's body, where we expect much lower uncertainty compared to the dynamics and measurement of the booster during the landing. 
+
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=0.5\textwidth]{rocket_traj.png}
     \caption{Reference (True) Landing trajectory with camera attitude.}
@@ -177,21 +229,29 @@ For the purposes of this analysis, no process noise has been injected onto the n
 
 
 \subsection{Simulation Environment}
-Since it is not feasible to have a physical replica of a vehicle following a booster-like trajectory, a simulation environment is created in Blender to gather images from the perspective of the camera mounted on the booster. The simulated environment has an approximate landing pad and tower, along with a floating camera.
-
-The Blender API allows us tis used to command this floating camera to specific poses in the Blender environment. WI
-The pre-determined trajectory timeseries from Section \ref{sec:dynamics} is programmed in Python. The 
-At each time step, the simulated pose of the rocket is used as the pose of the camera in Blender. This connection between the Python script and Blender is done using the Blender Python API. The generated camera images are fed back to the Python script, where they will be processed to gather pose estimates.  
+Since it is not feasible to have a physical replica of a vehicle following a booster-like trajectory, a simulation environment is created in Blender to gather images from the perspective of the camera mounted on the booster. The simulated environment has an approximate scenery (marshy land around Boca Chica, Texas, USA), a landing pad and tower, along with a floating camera. An ArUco tag, described in Section \ref{sec:image_processing}, is placed at the bottom of the landing pad. This blender environment is shown in Fig. \ref{fig:blender_env}.
 
 % insert figure here
-\begin{figure}[htbp] \label{fig:flow_chart}
-    \centerline{\includegraphics[width=0.3\textwidth]{april_tag_on_booster.png}}
-    \caption{Example camera output of a simulated environment in Blender that includes a landing tower with an AprilTag.}
-    \label{fig:sys_arch}
+\begin{figure}[htbp] \label{fig:blender_env}
+    \centering
+    \includegraphics[width=.3\textwidth]{blender_env.png}\hfill
+    \caption{Blender environment used to gather sample camera data.}
 \end{figure}
-% insert figure here
 
-\subsection{Image Processing}
+The Blender API allows us to command this floating camera to specific poses through a Python script. Using this API, the camera is moved along the camera-pose from the pre-determined trajectory timeseries from Section \ref{sec:dynamics}. An image is rendered at each of these poses. The entire batch of images is then passed into the vision based pose estimation pipeline described in Section \ref{sec:image_processing}. A selection of these images is shown in Fig. \ref{fig:blender_images}.
+
+% insert figure here
+\begin{figure}[htbp] \label{fig:blender_images}
+    \includegraphics[width=.243\textwidth]{blender_sim/simulation_imgs/0.png}\hfill
+    \includegraphics[width=.243\textwidth]{blender_sim/simulation_imgs/30.png}\hfill
+    \includegraphics[width=.243\textwidth]{blender_sim/simulation_imgs/40.png}\hfill
+    \includegraphics[width=.243\textwidth]{blender_sim/simulation_imgs/60.png}
+    \caption{Camera outputs from the simulated environment in Blender at different points in the trajectory. The rendered image includes the ground surface, the landing tower, and .}
+\end{figure}
+
+Since camera-pose in the nominal trajectory is constrained to always face the marker at the landing pad, every rendered image also includes the marker. However, near the end of the trajectory, the field of view captures only a portion of the marker.
+
+\subsection{Image Processing} \label{sec:image_processing}
 
 To simplify the problem, the assumption is made that the landing pad will have a feature-rich ArUco marker, with known feature dimensions (for the real problem, this will just be extended to utilize the 3-dimensional features of the landing pad itself). 
 The generated image of the environment (that includes the ArUco marker) at each time step is used to extract the camera's pose. 
@@ -199,7 +259,7 @@ With the fully defined camera intrinsic properties and the perfect knowledge of 
 The OpenCV library is used for the feature detection and matching algorithm for this implementation.
 To briefly discuss the specifics of the OpenCV library's functions, first we used a built in function to detect the ArUco marker's corners and local coordinate frame. 
 We confirm that the marker detection was done correctly by plotting the corners and axes on each image. 
-The figure below illustrates the detected ArUco marker for a specific time step in our rocket's trajectory.
+Figure \ref{fig:marker_} illustrates the detected ArUco marker for a specific time step in our rocket's trajectory. OpenCV was used to generate this specific marker; in a case where multiple markers are necessary for pose estimation, we would generate different ArUco markers so the detection function would be able to produce a pose estimate for each marker that is clearly captured in an image.
 
 % insert figure here
 \begin{figure}[ht!] 
@@ -223,45 +283,151 @@ K = \begin{bmatrix}
 With the ArUco marker simulated with a 10 meter side length in Blender, the origin of the marker's frame as well as its coordinates are known in 3D space. 
 The 2D pixel coordinates of the origin and corners are found by OpenCV's detection function. 
 The 3D known coordinates coupled with the 2D pixel coordinates allow the PnP problem to be solved with OpenCV's pose estimation function, yielding the camera pose.
-The camera pose is then transformed into 
+The resulting pose is then converted to OpenCV convention and transformed into the world frame to account for the landing pad offset from the actual ground.
+Image \ref{fig:CV_convention} illustrates the transformation to the OpenCV frame convention.
+
+% insert figure here
+\begin{figure}[ht!] 
+    \centerline{\includegraphics[width=0.45\textwidth]{CVtoGL.png}}
+    \caption{OpenGL to OpenCV Frame Convention \cite{openCV2024web}.}
+    \label{fig:CV_convention}
+\end{figure}
+% insert figure here
+
+Now, with the camera pose correctly defined in the world frame, we convert the rotation matrix to a quaternion representation to represent the attitude and avoid any potential singularities. 
 
 
 \subsection{Attitude filtering}
 
 The filtering of the rotational motion is executed by a multiplicative extended Kalman filter (MEKF) \cite{markley2003mekf} by choosing a state vector composed of pose error (i.e., error Modified Rodrigues Parameters (MRPs)) and angular velocity in a body frame.
 As an error MRPs do not have a unitary norm constraint like a quaternion, computation of the covariance matrix in MRP space simplifies the computation. 
-The kinematics of the error MRPs are linearized along the reference quaternion history (i.e., $\delta \boldsymbol{p}^{-}(t) = 0$), where the a posteriori estimate of the error MRP is then used to update the reference quaternion ($\boldsymbol{q}_{\text{ref}}^{k+1}(t) = \delta \boldsymbol{q}(\delta \boldsymbol{p}^{+}(t)) \circ \boldsymbol{q}_{\text{ref}}^k(t)$). 
+The kinematics of the error MRPs are linearized along the reference quaternion history (i.e., $\delta \boldsymbol{p}_{t|t} = 0$), where the a posteriori estimate of the error MRP is then used to update the reference quaternion. 
+% ($\boldsymbol{q}_{\text{ref}}^{k+1}(t) = \delta \boldsymbol{q}(\delta \boldsymbol{p}^{+}(t)) \circ \boldsymbol{q}_{\text{ref}}^k(t)$). 
 
-
+The state that variable described above can be written as follows:
+\begin{align*}
+    \mu = \begin{bmatrix}
+        \mu^p \\
+        \mu^{\omega}
+    \end{bmatrix}
+\end{align*}
+    
 The prediction step is expressed as follows:
 %
 \begin{align*}
-    q_{t|t+1} & = f(q_{t|t}, \omega_{t|t}, u_t) \\
-     \begin{bmatrix}
-         \delta p_{t|t+1} \\ \omega_{t|t+1}
-     \end{bmatrix} 
+    q_{t+1|t} & = f(q_{t|t}, \omega_{t|t}, u_t) \\
+    \mu_{t+1|t}
      & = A_{t} 
-     \begin{bmatrix}
-         \delta p_{t|t} \\ \omega_{t|t}
-     \end{bmatrix} + B_t u_t 
-    \Simga_{t|t+1} = A_t \Simga_{t|t+1}  
+    \mu_{t|t} + B_t u_t  \\
+    \Sigma_{t+1|t} & = A_t \Sigma_{t|t} A_t^T + Q_t,
 \end{align*}
+
+The linearized discrete-time state transition matrix and control input matrix are derived from the continuous-time linearized dynamics: 
+%
+\begin{align}
+    \dot{x} = 
+    \begin{bmatrix}
+        -\frac{1}{2} [\omega_t]^{\times} & \mathbb{I}_3 \\
+        0 & 0 
+    \end{bmatrix} x =: \Lambda_t x, 
+    \quad 
+    x :=  \begin{bmatrix}
+        \delta p \\ \omega
+    \end{bmatrix},
+\end{align}
+%
+where $[\omega_t]^{\times}$ denotes a skew matrix of a vector $\omega_t$.
+By taking the state transition matrix, we obtain the discrete-time state transition matrix 
+%
+\begin{align}
+    A_t & = e^{\Lambda_t \Delta t} = \begin{bmatrix}
+        -e ^{-\frac{1}{2}[\omega]^{\times}\Delta t} & 
+        \int_{0}^{\Delta t} e^{-\frac{1}{2}[\omega]^{\times} \tau d\tau } \\
+        0 & \mathbb{I}_3
+    \end{bmatrix}, \\
+    B_t & = \begin{bmatrix}
+        0 \\ \mathbb{I}_3
+    \end{bmatrix}
+\end{align}
+%
+The efficient computation of the matrix $A_t$ is elaborated in Ref. \citenum{tweddle2015relative}. 
+Note that we are assuming the impulsive control $u_t = \Delta \omega_t$ in this paper, which leads to the definition of the discrete-time control input matrix $B_t$.
 
 The update step is expressed as follows:
 %
 \begin{align*}
-    \begin{bmatrix}
-         \delta p_{t+1|t+1} \\ \omega_{t+1|t+1}
-     \end{bmatrix}
+    K_t & =  \Sigma_{t+1|t} C_t^\top (C_t \Sigma_{t+1|t} C_t^T + R_t)^{-1} \\
+    \mu_{t+1|t+1}
      & = 
-     \begin{bmatrix}
-         \delta p_{t|t+1} \\ \omega_{t|t+1}
-     \end{bmatrix} 
+    \mu_{t+1|t} + K_t \left(y_t - g\left(\mu_{t+1|t} \right) \right) 
      \\
-    q_{t+1|t+1} & = \delta q(\delta p_{t}) \circ q_{t|t+1}
+     \Sigma_{t+1|t+1} & = \Sigma_{t+1|t} - K_t C_t  \Sigma_{t+1|t}  \\
+\end{align*}
+Following the update step, the reset step is performed. 
+During this step, the reference quaternion is updated using posterior mean from the update step, and the component of the posterior mean that corresponds to the error MRP is reset to zero. 
+This is shown below.
+\begin{align*}
+    \delta p_{t} & = \mu_{t+1|t+1}^{p}\\
+    q_{t+1|t+1} & = \delta q(\delta p_{t}) \circ q_{t+1|t} \\
+    \mu_{t+1|t+1} & = \begin{bmatrix} 0 \\
+    \mu_{t+1|t+1}^{\omega}\end{bmatrix}
 \end{align*}
 
-After the update, 
+The measurement model $g(\mu)$ is quite simple for this problem formulation. 
+The IMU measurements consist of an estimate of the absolute attitude itself along with the angular velocity. 
+The estimate of the absolute attitude output by the IMU corresponds to error between the the ground truth attitude and the reference quaternion in the filter (i.e. $q_{t+1|t}$) expressed as an error MRP to match the form of the state. 
+Thus the measurement model for the IMU outputs is as follows.
+\begin{equation*}
+    g(\mu_{t+1|t})^{IMU} = C_t^{IMU} \mu_{t+1|t} = \begin{bmatrix}
+        I & 0 \\
+        0 & I
+    \end{bmatrix} \mu_{t+1|t}
+\end{equation*}
+
+The output that comes directly from the camera pose measurements is the estimate of the ground truth pose. 
+This is converted to an error between the estimate and the reference quaternion, again in order to match the form of the state. 
+Thus the measurement model for this component of the measurement space is represented as follows.
+\begin{equation*}
+    g(\mu_{t+1|t})^{c} = C_t^c \mu_{t+1|t} = I \mu_{t+1|t}
+\end{equation*}
+
+It follows that the overall measurement model can be constructed as shown below.
+\begin{equation*}
+    g(\mu_{t+1|t} = \begin{bmatrix}
+        g(\mu_{t+1|t})^{c} \\ g(\mu_{t+1|t})^{IMU}
+    \end{bmatrix} = C_t \mu_{t+1|t} = \begin{bmatrix}
+        I & 0 \\ I & 0 \\ 0 & I
+    \end{bmatrix} \mu_{t+1|t}
+\end{equation*}
+
+For analysis of the MEKF, actual artificial measurements had to also be generated. Firstly for the IMU, this was done using the following expression, which leverages the fact that the expected value of $\mu_{t+1|t}$ is 0.
+\begin{equation*}
+    y_t^{IMU} = \begin{bmatrix}
+         0 \\ \omega_t
+    \end{bmatrix} + V_t
+\end{equation*}
+Where $\omega_t$ is the true angular velocity, $V_t^{IMU}$ is uncorrelated random noise with covariance $R_t^{IMU}$.
+
+The camera measurements were generated a bit more subtly. The quaternion output from the camera model is slightly perturbed by some $\delta q$ to emulate noise as shown here.
+\begin{equation*}
+    \hat{q}^c = \delta q \circ q^c
+\end{equation*}
+
+Then the perturbed quaternion is converted to an error MRP for the final measurement generation.
+\begin{equation*}
+    y_t^c = \hat{q}^c \circ q_{t+1|t}^*
+\end{equation*}
+Where $q_{t+1|t}^*$ is the conjugate of the reference quaternion after it is propagated forward in time.
+
+Thus the full measurement vector at each time step can be expressed as follows.
+\begin{equation*}
+    y_t = \begin{bmatrix} y_t^c \\ y_t^{IMU} \end{bmatrix} = \begin{bmatrix}
+        \hat{q}^c \circ q_{t+1|t}^* \\ 0 \\ \omega_t
+    \end{bmatrix} + \begin{bmatrix}
+        0 \\ V_t
+    \end{bmatrix}
+\end{equation*}
+
 
 \subsection{Result Validation and Sensor Fusion}
 To validate the camera-based pose estimate and determine whether it is a viable method for pose estimation for the booster landing problem, the visual estimate is benchmarked against inertial navigation, i.e. pose estimation using data from an Inertial Measurement Unit. 
@@ -270,15 +436,59 @@ As inertial navigation is the current standard method for pose estimation on lau
 
 \section{Results}
 
-\subsection{Visual Navigation Results}
+\subsection{Camera Pose Estimation Results}
+After solving the PnP problem and transforming to the correct frame, we compared the ground truth time history of the position and attitude to our vision estimation results.
+
+% insert figure here
+\begin{figure}[ht!] 
+    \centerline{\includegraphics[width=0.5\textwidth]{translation_comp.png}}
+    \caption{Ground Truth versus Estimated Position.}
+    \label{fig:trans_comp}
+\end{figure}
+% insert figure here
+
+% insert figure here
+\begin{figure}[ht!] 
+    \centerline{\includegraphics[width=0.5\textwidth]{quaternion_comp.png}}
+    \caption{Ground Truth versus Estimated Attitude.}
+    \label{fig:quat_comp}
+\end{figure}
+% insert figure here
+
+As illustrated in Fig. \ref{fig:trans_comp} and \ref{fig:quat_comp}, the pose estimation of the camera from the PnP problem tracks well; the estimated position and attitude time histories match the ground truth. 
+It should be noted that the 'spikes' in the plots can partially be attributed to the ArUco marker not being detected at every time step.
+Potential solutions to this issue are discussed in the conclusion of this paper.
+
 
 \subsection{Vision Denied Case}
 
+% insert figure here
+\begin{figure}[ht!] 
+    \centerline{\includegraphics[width=0.45\textwidth]{vision_denied_case.png}}
+    \caption{Vision Denied Results.}
+    \label{fig:results_novision}
+\end{figure}
+% insert figure here
+
 \subsection{Vision Enhanced Case}
+
+% insert figure here
+\begin{figure}[ht!] 
+    \centerline{\includegraphics[width=0.45\textwidth]{vision_enhanced_case.png}}
+    \caption{Vision Enhanced Results.}
+    \label{fig:results_withvision}
+\end{figure}
+% insert figure here
 
 
 
 \section{Conclusion}
+
+As mentioned previously, over the course of the rocket's trajectory, not every time step had an image where the ArUco marker could be detected by OpenCV.
+This happened most often at the beginning and end of the trajectory, where the ArUco tag was either too far away to be detected, or too close where not all four corners of the tag were captured by the Blender image. 
+In a real-world scenario, having multiple cameras and/or multiple ArUco markers would solve this issue, enabling us to generate vision-based pose estimation at every time step.
+Additionally, terrain relative navigation is a viable alternative to ArUco marker detection, especially when the rocket is too far away from the landing pad for a camera to capture high-resolution images. 
+This would also allow us to avoid ever relying on solely the IMU measurements. 
 
 % \section*{Acknowledgment}
 
