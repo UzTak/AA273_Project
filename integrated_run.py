@@ -89,4 +89,6 @@ if __name__ == "__main__":
     fig2, fig3 = MRP_error_band(xest_hist[:, 4:], qw_r[:,4:], final_mrp, Pest_hist, dt)
     fig2.savefig('omega_result_plot_vision_enhanced.png')
     fig3.savefig('mrp_result_plot_vision_enhanced.png')
+    # fig2.savefig('omega_result_plot_vision_denied.png')
+    # fig3.savefig('mrp_result_plot_vision_denied.png')
     plt.show()
