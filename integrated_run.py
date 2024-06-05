@@ -86,5 +86,7 @@ if __name__ == "__main__":
     fig = plt.figure(figsize=(12,8))
     fig = plot_sol_qw2(fig, np.transpose(qw_r), None, t, qw_ref=None, c="g")
     fig = plot_sol_qw2(fig, np.transpose(xest_hist), None, t, qw_ref=None, c="b")
-    fig2 = MRP_error_band(xest_hist[:, 4:], qw_r[:,4:], final_mrp, Pest_hist, dt)
+    fig2, fig3 = MRP_error_band(xest_hist[:, 4:], qw_r[:,4:], final_mrp, Pest_hist, dt)
+    fig2.savefig('omega_result_plot_vision_enhanced.png')
+    fig3.savefig('mrp_result_plot_vision_enhanced.png')
     plt.show()
