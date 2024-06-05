@@ -283,6 +283,10 @@ K = \begin{bmatrix}
 With the ArUco marker simulated with a 10 meter side length in Blender, the origin of the marker's frame as well as its coordinates are known in 3D space. 
 The 2D pixel coordinates of the origin and corners are found by OpenCV's detection function. 
 The 3D known coordinates coupled with the 2D pixel coordinates allow the PnP problem to be solved with OpenCV's pose estimation function, yielding the camera pose.
+After pre-processing the image, the first step of the PnP problem is to project the 3D points onto the 2D image plane using the camera intrinsics and an initial estimate of the rotation and translation of the camera relative to the marker. 
+Since we did not define an initial estimate for the camera pose, OpenCV automatically defines this for us, although the specifics of this estimate are unknown.
+An optimization algorithm, likely Levenberg-Marquadt, iteratively reduces the projection error until a convergence criteria is satisfied. 
+The algorithm then returns the final translation and rotation, which can generally be trusted as an accurate pose estimate when using ArUco markers. 
 The resulting pose is then converted to OpenCV convention and transformed into the world frame to account for the landing pad offset from the actual ground.
 Image \ref{fig:CV_convention} illustrates the transformation to the OpenCV frame convention.
 
@@ -489,6 +493,7 @@ This happened most often at the beginning and end of the trajectory, where the A
 In a real-world scenario, having multiple cameras and/or multiple ArUco markers would solve this issue, enabling us to generate vision-based pose estimation at every time step.
 Additionally, terrain relative navigation is a viable alternative to ArUco marker detection, especially when the rocket is too far away from the landing pad for a camera to capture high-resolution images. 
 This would also allow us to avoid ever relying on solely the IMU measurements. 
+Since our comparison of the results of the vision-denied case to the vision-enhanced case showed that adding vision significantly improved the MRP error, having vision based pose estimates at every time step would be very beneficial to achieving the centimeter-level accuracy required for catching the booster upon landing.
 
 % \section*{Acknowledgment}
 
